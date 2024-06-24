@@ -52,7 +52,7 @@ pip-selfcheck.json
 .ensime_cache/
 .ensime_lucene
 .generated-mima*
-.idea/
+# .idea/
 .project
 .pydevproject
 .scala_dependencies
