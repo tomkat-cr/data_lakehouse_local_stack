@@ -7,7 +7,7 @@
 #
 # docker exec -it spark bash
 # cd Project
-# sh ./batch_processing/020_raygun_ip_processing.sh
+# bash ./batch_processing/020_raygun_ip_processing.sh
 #
 set -e
 REPO_BASEDIR="`pwd`"
@@ -24,7 +24,9 @@ else
         minio \
         pyhive \
         trino \
-        python-dotenv
+        python-dotenv \
+        boto3 \
+        botocore
     pip freeze > requirements.txt
 fi
 python3 -m raygun_ip_processing
