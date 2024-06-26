@@ -21,11 +21,15 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ---
 
 ### New
+Add: processing.env
+Add: parametrize raygun_ip_processing
+Add: Output directory for results file(s).
+Add: TESTING_ITERACTIONS to test all raygun_ip_processing procedire before release and live data run.
 Add: show date/time and time elapsed for each step.
 
 ### Changes
-Parametrize raygun_ip_processing, set processing.env and stablish Output directory for results file(s).
 get_data was renamed to get_pockemon_data.
+raygun_ip_processing divided in functions, separating the ingestion process from the queries.
 
 ### Fixes
 Fix: Optimize the spark.read.json() file processing by first getting a list of all file paths in the directory, then use spark.read.json() to read files IN CHUCKS of `batch_size`.
