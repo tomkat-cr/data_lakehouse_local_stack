@@ -14,15 +14,17 @@ import pprint
 from dotenv import load_dotenv
 
 # Import libraries for Step 1.3
-
 # import os
 from pyspark.sql import SparkSession
-# from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
-from pyspark.sql.functions import monotonically_increasing_id, concat, lit
-from pyspark.storagelevel import StorageLevel
-import gc
 from pyspark.sql.functions import explode
+# from pyspark.sql.functions import monotonically_increasing_id, concat, lit
+from pyspark.errors.exceptions.captured import AnalysisException
+from pyspark.storagelevel import StorageLevel
+
+import gc
+
 import boto3
 from botocore.client import Config
 
@@ -58,12 +60,8 @@ def get_config() -> dict:
     config["minio_access_key"] = os.getenv('MINIO_ACCESS_KEY')
     config["minio_secret_key"] = os.getenv('MINIO_SECRET_KEY')
     config["minio_endpoint"] = os.getenv('MINIO_ENDPOINT', "http://minio:9000")
-    config["minio_bucket_name"] = os.getenv('MINIO_BUCKET_NAME', "data-lakehouse")
-
-    # try:
-    #     load_dotenv('processing.env')
-    # except FileNotFoundError:
-    #     print("Warning: processing.env file not found. Using default values.")
+    config["minio_bucket_name"] = os.getenv(
+        'MINIO_BUCKET_NAME', "data-lakehouse")
 
     config["debug"] = os.getenv('DEBUG', '1')
     config["debug"] = False if config["debug"] == '0' else True
@@ -94,7 +92,8 @@ def get_config() -> dict:
     # Local directory path containing JSON files
     # input_local_directory = os.getenv('INPUT_LOCAL_DIRECTORY', "data")
     config["input_local_directory"] = os.getenv('INPUT_LOCAL_DIRECTORY')
-    config["local_directory"] = f"{config['base_path']}/{config['input_local_directory']}"
+    config["local_directory"] = \
+        f"{config['base_path']}/{config['input_local_directory']}"
 
     # S3 prefix (directory path in the bucket) to store raw data read from
     # the local directory
@@ -102,10 +101,12 @@ def get_config() -> dict:
     config["s3_prefix"] = os.getenv('S3_PREFIX')
 
     # Desired attribute and alias to filter one column
-    config["desired_attribute"] = os.getenv('DESIRED_ATTRIBUTE', "Request.IpAddress")
+    config["desired_attribute"] = \
+        os.getenv('DESIRED_ATTRIBUTE', "Request.IpAddress")
     config["desired_alias"] = os.getenv('DESIRED_ALIAS', "RequestIpAddress")
 
-    # Repartition the DataFrame to optimize parallel processing and memory usage
+    # Repartition the DataFrame to optimize parallel processing
+    # and memory usage.
     # (Adjust the number of partitions based on your environment and data size,
     #  workload and cluster setup)
     config["df_num_partitions"] = int(os.getenv('DF_NUM_PARTITIONS', '200'))
@@ -115,12 +116,13 @@ def get_config() -> dict:
     config["df_read_batch_size"] = int(os.getenv('DF_READ_BATCH_SIZE', '5000'))
 
     # Number of batches to Save Data into Apache Hive
-    config["hive_batches"] = int(os.getenv('HIVE_BATCHES', '10'))  # Splits data into 10 batches
+    config["hive_batches"] = \
+        int(os.getenv('HIVE_BATCHES', '10'))  # Splits data into 10 batches
 
     # Final output result file
     config["sql_results_path"] = f"{config['base_path']}/Outputs/" + \
         os.getenv('RESULTS_SUB_DIRECTORY')
-        # os.getenv('RESULTS_SUB_DIRECTORY', "raygun_ip_addresses_summary")
+    # os.getenv('RESULTS_SUB_DIRECTORY', "raygun_ip_addresses_summary")
 
     # Hive location
     # config["hive_location"] = config["base_path"] + "/Storage/hive/"
@@ -138,14 +140,16 @@ def get_config() -> dict:
 
     print("")
     print("Base path:", config["base_path"])
-    print("Testing iteractions:", config["testing_iteractions"] or "PRODUCTION")
+    print("Testing iteractions:",
+          config["testing_iteractions"] or "PRODUCTION")
     print("Input local directory:", config["local_directory"])
     print("S3 page size:", config["s3_page_size"])
     print("S3 read timeout:", config["s3_read_timeout"])
     print("S3 prefix:", config["s3_prefix"])
     print("Desired attribute:", config["desired_attribute"])
     print("Desired alias:", config["desired_alias"])
-    print("Dataframe number of partitions (for repartitioning):", config["df_num_partitions"])
+    print("Dataframe number of partitions (for repartitioning):",
+          config["df_num_partitions"])
     print("Dataframe read batch size:", config["df_read_batch_size"])
     print("Hive batches:", config["hive_batches"])
     print("Hive location:", config["hive_location"])
@@ -192,7 +196,7 @@ def show_curr_datetime(timestamp: float = None, message: str = None) -> float:
     return new_timestamp
 
 
-def get_spark_session(config: dict):
+def get_spark_session(config: dict) -> SparkSession.Builder:
     """
     Get a Spark session.
     """
@@ -220,7 +224,7 @@ def get_spark_session(config: dict):
         .getOrCreate()
 
 
-def list_files_minio(config: dict) -> list:
+def list_files_minio(config: dict, resume_from: int) -> list:
     """
     List files in a Minio bucket under a specific prefix using boto3.
     """
@@ -255,9 +259,15 @@ def list_files_minio(config: dict) -> list:
         j += 1
         print(f"{j}) Current files: {len(files)}" +
               f" | Files to append: {len(page.get('Contents', []))}")
+        if resume_from > 0:
+            if (j*config["s3_page_size"]) < resume_from:
+                print(f"Skipping from {j*config['s3_page_size']}" +
+                      f" until {resume_from}...")
+                continue
         for obj in page.get('Contents', []):
             files.append(obj['Key'])
-        if config["testing_iteractions"] and j >= config["testing_iteractions"]:
+        if config["testing_iteractions"] and \
+           j >= config["testing_iteractions"]:
             break
     return files
 
@@ -292,7 +302,7 @@ def list_files_minio(config: dict) -> list:
 # Install dotenv to load environment variables
 # !{sys.executable} -m pip install python-dotenv
 
-def ingest():
+def ingest(resume_from: int = -1):
 
     ########################
     # Step 1.2: Read .env file
@@ -307,7 +317,6 @@ def ingest():
     print("*** Ingestion Process begins ***")
     print("********************************")
     start_time = show_curr_datetime()
-
 
     ########################
     # Step 1.3: Setup spark
@@ -366,9 +375,9 @@ def ingest():
     else:
         minio_client.make_bucket(bucket_name)
         # Upload JSON files to MinIO
-        for filename in os.listdir(local_directory):
+        for filename in os.listdir(config["local_directory"]):
             if filename.endswith(".json"):
-                file_path = os.path.join(local_directory, filename)
+                file_path = os.path.join(config["local_directory"], filename)
                 minio_client.fput_object(bucket_name, filename, file_path)
                 print(f"Uploaded {filename} to {bucket_name}")
 
@@ -377,6 +386,9 @@ def ingest():
     # Step 2: Read Multiple JSON Files from MinIO
     ########################
     ########################
+
+    # IMPORTANT: It's recomended to perform this step using "1.init_minio.sh"
+    # for a better performance for a large number of files.
 
     # Read JSON files into DataFrame
 
@@ -394,13 +406,14 @@ def ingest():
 
     # Optimize the spark.read.option().json() file processing
     # by first getting a list of all file paths in the directory,
-    # then use spark.read.json() to read all files IN CHUCKS of `df_read_batch_size`
+    # then use spark.read.json() to read all files IN CHUCKS
+    # of `df_read_batch_size`
 
     print("")
-    print(">> List files in a Minio bucket under a specific prefix using boto3...")
+    print(">> List files in Minio bucket under a prefix using boto3...")
 
     init_ts = show_curr_datetime()
-    file_list = list_files_minio(config)
+    file_list = list_files_minio(config, resume_from)
 
     # Convert to the format read by Spark
     file_list = [f"s3a://{bucket_name}/{file_name}" for file_name in file_list]
@@ -430,11 +443,163 @@ def ingest():
         else:
             df = spark.read.option("multiline", "true") \
                 .json(batch_files)
+
+        # Persist the DataFrame to disk
+        print(f"Persisting DataFrame to disk (round {j})...")
+
+        # Cache the DataFrame in memory
+        # df.cache()
+
+        # df.persist(StorageLevel.DISK_ONLY)
+        # spark.catalog.cacheTable("cached_df", df)
+        # TypeError: storageLevel must be of type pyspark.StorageLevel
+
+        df.persist(StorageLevel.MEMORY_AND_DISK)
+        spark.catalog.cacheTable("cached_df", df)
+        # TypeError: storageLevel must be of type pyspark.StorageLevel
+
         # Call specific function to process data
         # process_data(df)
-        if config["testing_iteractions"] and j >= config["testing_iteractions"]:
+
+        # Finish the eventaul test
+        if config["testing_iteractions"] and \
+           j >= config["testing_iteractions"]:
             break
+
+    # After reading all the JSON files in batches, we need to union all the
+    # batches to get the complete DataFrame with all the data
+    df = df.unionAll(spark.createDataFrame([], df.schema))
+
+    # Repartition the DataFrame to optimize parallel processing and
+    # memory usage.
+    # (Adjust the number of partitions based on your environment and data size)
+    df = df.repartition(config["df_num_partitions"])
+
+    # To get the entire DataFrame without reading the JSON files again
+    # We can cache the DataFrame in memory or disk after reading it
+    # This way, we can retrieve the cached DataFrame later without re-reading
+    # the files.
+
+    # Persist (cache) the DataFrame in disk to be used later or multiple times
+    df.persist(StorageLevel.MEMORY_AND_DISK)
+    spark.catalog.cacheTable("cached_df", df)
+
+    hive_process(df, start_time)
+
     show_curr_datetime(init_ts)
+
+
+def get_spark_content():
+
+    # To get the database/schema name, you can use:
+    # 1. spark.catalog.listDatabases() to list all databases
+    # 2. spark.catalog.listTables("database_name") to list tables in a database
+    # 3. df.printSchema() to print the schema of a DataFrame
+
+    config = get_config()
+    spark = get_spark_session(config)
+
+    # Get the current_schema() from spark?
+    current_database = spark.catalog.currentDatabase()
+    print(f"Current database: {current_database}")
+
+    # Get the dataframe for the current database
+    df = spark.sql("SELECT * FROM cached_df")
+    print("Dataframe schema structure:")
+
+    try:
+        # Check if any previous data exists
+        if spark.catalog.isCached("cached_df"):
+            # Retrieve the cached DataFrame
+            print("Loading cached DataFrame...")
+            df = spark.catalog.getCachedDataFrame("cached_df")
+            # You can now work with the cached_df DataFrame without re-reading
+            # the JSON files
+            print("")
+            print("Dataframe schema structure:")
+            # Show schema structure
+            df.printSchema()
+        else:
+            print("No cached DataFrame found [1]...")
+            # Initialize an empty DataFrame
+            # df = spark.createDataFrame([], schema=None)
+    except AnalysisException as e:
+        # pyspark.errors.exceptions.captured.AnalysisException: [TABLE_OR_VIEW_NOT_FOUND] The table or view `cached_df` cannot be found. Verify the spelling and correctness of the schema and catalog.
+        # If you did not qualify the name with a schema, verify the current_schema() output, or qualify the name with the correct schema and catalog.
+        # To tolerate the error on drop use DROP VIEW IF EXISTS or DROP TABLE IF EXISTS.;
+        # 'UnresolvedRelation [cached_df], [], false
+        print(f"Error: {e}")
+        print("No cached DataFrame found [2]...")
+    except Exception as e:
+        print(f"Error: {e}")
+        print("No cached DataFrame found [3]...")
+
+    db_list = spark.catalog.listDatabases()
+    print(f"Databases: {db_list}")
+
+    # R:
+    # Databases: [Database(name='default', catalog='spark_catalog',
+    #    description='Default Hive database',
+    #    locationUri='file:/opt/hive/data/warehouse')]
+
+    # Get the default database
+    default_db = spark.catalog.listDatabases()[0]
+    print(f"Default database: {default_db.name}")
+
+    # List tables in the default database
+    tables = spark.catalog.listTables(default_db.name)
+    print(f"Tables in {default_db.name}:")
+    for table in tables:
+        print(f"- {table.name}")
+
+
+def hive_process(df: DataFrame = None, start_time: float = None):
+
+    # Load environment variables
+    config = get_config()
+
+    # Start the timer
+    print("")
+    print("***************************")
+    print("*** HIVE Process begins ***")
+    print("***************************")
+    start_time = show_curr_datetime()
+
+    ########################
+    # Step 1.3: Setup spark
+    ########################
+
+    # Initialize Spark session
+
+    print("")
+    print(">> Initializing Spark session...")
+    print("")
+
+    spark = get_spark_session(config)
+
+    # # Load a table as a DataFrame
+    # default_db = spark.catalog.listDatabases()[0]
+    # table_name = "raygun_error_traces"
+    # df = spark.table(f"{default_db.name}.{table_name}")
+
+    # Check if any previous data exists
+    if df:
+        print("Resume spark processing from the last Dataframe...")
+    else:
+        if spark.catalog.isCached("cached_df"):
+            # Retrieve the cached DataFrame
+            print("Loading cached DataFrame...")
+            df = spark.catalog.getCachedDataFrame("cached_df")
+            # You can now work with the cached_df DataFrame without
+            # re-reading the JSON files
+        else:
+            print("No cached DataFrame found...")
+            return
+            # Initialize an empty DataFrame
+            # df = spark.createDataFrame([], schema=None)
+
+    if not start_time:
+        start_time = show_curr_datetime()
 
     # Show schema structure
     print("")
@@ -455,13 +620,6 @@ def ingest():
     print("")
 
     # Flatten the nested structure for easier analysis
-
-    # Repartition the DataFrame to optimize parallel processing and memory usage
-    # (Adjust the number of partitions based on your environment and data size)
-    df = df.repartition(config["df_num_partitions"])
-
-    # Persist the DataFrame if it's going to be used multiple times
-    df.persist(StorageLevel.MEMORY_AND_DISK)
 
     # Processing the DataFrame
     print("Processing the DataFrame...")
@@ -532,14 +690,16 @@ def ingest():
 
     df_flattened = df_flattened.repartition(config["df_num_partitions"])
 
-    # from pyspark.sql.functions import monotonically_increasing_id, concat, lit
+    # from pyspark.sql.functions \
+    #    import monotonically_increasing_id, concat, lit
 
     # Add a salt column for high-cardinality column to distribute writes
     # df_flattened = df_flattened.withColumn(
     #     "salt",
     #     # concat(col("HighCardinalityColumn"), lit("_"),
     #     concat(col(config["desired_alias"]), lit("_"),
-    #            (monotonically_increasing_id() % config["df_num_partitions"]).cast("string")))
+    #            (monotonically_increasing_id() % \
+    #            config["df_num_partitions"]).cast("string")))
     # df_flattened = df_flattened.repartition("salt")
 
     # Set properties to manage memory better during shuffle and write
@@ -551,7 +711,9 @@ def ingest():
 
     # Save the processed data into Hive table
 
-    # Adjust the number of partitions as necessary in .repartition(config["df_num_partitions"])
+    # # Adjust the number of partitions as necessary in
+    # # .repartition(config["df_num_partitions"])
+    #
     # df_flattened \
     #     .repartition(config["df_num_partitions"]) \
     #     .write \
@@ -638,8 +800,6 @@ def get_trino_query(sql: str = None):
     # With trino-python-client
     # https://github.com/trinodb/trino-python-client
 
-    config = get_config()
-
     if not sql:
         sql = DEFAULT_SQL
 
@@ -672,24 +832,46 @@ def get_trino_query(sql: str = None):
 if __name__ == "__main__":
     # Get mode parameter
     mode = sys.argv[1] if len(sys.argv) > 1 else None
-    sql = sys.argv[1] if len(sys.argv) > 2 else None
+    # sql = sys.argv[1] if len(sys.argv) > 2 else None
+    sql = os.environ.get('SQL', None)
+    ingest_from = os.environ.get('FROM', "")
+    if not ingest_from:
+        ingest_from = -1
+    else:
+        ingest_from = int(ingest_from)
     if mode == "ingest":
-        ingest()
+        ingest(ingest_from)
         get_spark_query(sql)
     elif mode == "spark_sql":
         get_spark_query(sql)
     elif mode == "trino_sql":
         get_trino_query(sql)
+    elif mode == "hive_process":
+        hive_process()
+    elif mode == "spark_content":
+        get_spark_content()
     else:
         print("")
         print("Invalid mode parameter.")
-        print("Available options: ingest, spark_sql, trino_sql")
+        print("Available options: ingest, hive_process, spark_sql, trino_sql")
         print("E.g.")
-        print("MODE=ingest make raygun_ip_processing")
-        print("MODE=spark_sql make raygun_ip_processing")
-        print(
-            "SQL='SELECT RequestIpAddress FROM raygun_error_traces " + 
-            "GROUP BY RequestIpAddress' MODE=spark_sql " +
-            "make raygun_ip_processing")
+        print("To execute the complete ingestion process:")
+        print("  MODE=ingest make raygun_ip_processing")
+        print("To resume the ingestion process from the file number: 70000")
+        print("  MODE=ingest FROM=70000 make raygun_ip_processing")
+        print("To execute the hive tables population process" +
+              " (after a stopped ingestion):")
+        print("  MODE=hive_process make raygun_ip_processing")
+        print("To get the ingestion results using the default SQL query" +
+              " and spark:")
+        print("  MODE=spark_sql make raygun_ip_processing")
+        print("To get the ingestion results using a pecified SQL query" +
+              " and spark:")
+        print("  SQL='SELECT RequestIpAddress FROM raygun_error_traces " + 
+              "GROUP BY RequestIpAddress' MODE=spark_sql " +
+              "make spark_sql")
+        print("To get the ingestion results using the default SQL query" +
+              " and trino:")
+        print("  MODE=trino_sql make raygun_ip_processing")
         print("")
         sys.exit(1)

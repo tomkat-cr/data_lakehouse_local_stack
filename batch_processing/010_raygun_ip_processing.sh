@@ -40,6 +40,6 @@ else
         botocore
     pip freeze > requirements.txt
 fi
-python3 -m ${APP_NAME} ${MODE} ${SQL}
+python3 -m ${APP_NAME} ${MODE}
 deactivate
 # rm -rf venv
