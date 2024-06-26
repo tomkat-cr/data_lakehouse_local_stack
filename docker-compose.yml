@@ -9,6 +9,7 @@ services:
       context: .
     volumes:
       - ./:/home/PyCon2024/Project
+      - ./Storage/hive:/opt/hive/data/warehouse
     ports:
       - '8888:8888'
     env_file:
@@ -16,6 +17,7 @@ services:
     entrypoint: bash /home/PyCon2024/entrypoint.sh
     networks:
       - lakehouse-network
+
   trino:
     image: 'trinodb/trino:448'
     hostname: trino
@@ -29,8 +31,10 @@ services:
       - '8081:8081'
     volumes:
       - ./config/trino:/etc/trino
+      - ./Storage/hive:/opt/hive/data/warehouse
     networks:
       - lakehouse-network
+
   postgres:
     image: 'postgres:latest'
     hostname: postgres
@@ -43,6 +47,7 @@ services:
       - '5432:5432'
     networks:
       - lakehouse-network
+
   metastore:
     image: 'apache/hive:4.0.0'
     hostname: metastore
@@ -65,6 +70,7 @@ services:
       - type: bind
         source: ./TempPackages/postgresql-42.7.3.jar
         target: /opt/hive/lib/postgresql-42.7.3.jar
+
     environment:
       HIVE_CUSTOM_CONF_DIR: /hive_custom_conf
       SERVICE_NAME: metastore
@@ -75,6 +81,7 @@ services:
                      -Djavax.jdo.option.ConnectionPassword=password'
     networks:
       - lakehouse-network
+
   minio:
     image: 'minio/minio:latest'
     hostname: minio
