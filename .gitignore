@@ -220,3 +220,6 @@ Storage/hive/*
 # Output reports
 Outputs/*
 !Outputs/.gitkeep
+
+# Batch processing
+processing.env

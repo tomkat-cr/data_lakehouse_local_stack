@@ -21,8 +21,8 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ---
 
 ### New
-Add: processing.env
 Add: parametrize raygun_ip_processing
+Add: processing.env and processing.example.env
 Add: Output directory for results file(s).
 Add: TESTING_ITERACTIONS to test all raygun_ip_processing procedire before release and live data run.
 Add: show date/time and time elapsed for each step.
