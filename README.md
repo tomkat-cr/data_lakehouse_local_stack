@@ -114,7 +114,7 @@ make install
 
 **IMPORTANT**: this process will take a long time, depending on your Internet connection speed.
 
-Start the local stack:
+Start the local stack (or `spark stack`):
 
 ```bash
 make run
@@ -132,66 +132,11 @@ Run the local Minio explorer:
 make open_local_minio
 ```
 
-## Large number of input data files
+## Raygun Data Processing
 
-If you have more than 1000 raw data input files, you can use the following proedure to mount the input files directory in the local stack `data` directory:
+To process a single Raygun error you need to download the Raygun data, composed by a series of JSON files for each time  the error happend with all data shown in Raygun, upload the data to S3 (managed locally by Minio), ingest the data using Spark, build the Hive metastore and finally run the SQL queries to get the data analytics.
 
-1. Edit the docker-compose configuration file in the project's root:
-
-```sh
-vi ./docker-compose.yml
-```
-
-2. Add the `data/any_directory_name` input files directory in the `volumnes` section, changing `any_directory_name` with the name of yours, e.g. `raygun`:
-
-File: `./docker-compose.yml`
-
-```yaml
-version: "3.9"
-services:
-  spark:
-      .
-      .
-    volumes:
-      - /path/to/input/directory/:/home/PyCon2024/Project/data/any_directory_name
-```
-
-So your massive input files will be under the `data/any_directory_name` directory.
-
-3. You can also do it by a symbolic link:
-
-```sh
-ln -s /path/to/input/directory/ data/any_directory_name
-```
-
-4. In a terminal window, run the spark stack:
-
-```sh
-make run
-```
-
-5. Open a second terminal window and enter to the `spark` docker container:
-
-```sh
-docker exec -ti spark bash
-```
-
-6. Then run the load script:
-
-```sh
-cd Project
-sh /home/PyCon2024/Project/Scripts/1.init_minio.sh data/raygun
-```
-
-7. To destroy the link:
-
-Exit the second terminal window and run:
-
-```sh
-unlink data/any_directory_name
-```
-
-## Raygun Data preparation
+### Raygun Data Preparation
 
 1. Go to Raygun ([https://app.raygun.com](https://app.raygun.com)), and select the corresponding Application.
 
@@ -250,20 +195,114 @@ Learn how to extract 7z files
 
 15. To check the input files size:
 
+Set an environment variable with the path:
+
 ```sh
-du -sh ${HOME}/Downloads/raygun-data/assets
+ORIGINAL_JSON_FILES_PATH="${HOME}/Downloads/raygun-data/assets"
 ```
 
-16. Move the files to the `data/raygun` directory in the Project, or perform the `Large number of input data files` procedure to liken the `${HOME}/Downloads/raygun-data/assets` to the `data/raygun` directory.
+Get the total size for all files downloaded:
 
-17. Run the ingest process:
+```sh
+du -sh ${ORIGINAL_JSON_FILES_PATH}
+```
+
+Count the number of files in that directory:
+
+```sh
+ls -l ${ORIGINAL_JSON_FILES_PATH} | wc -l
+```
+
+16. Move the files to the `data/raygun` directory in the Project, or perform the `Large number of input data files` procedure (se next section) to link the `${HOME}/Downloads/raygun-data/assets` to the `data/raygun` directory.
+
+### Large number of input data files
+
+If you have more than 1000 raw data input files, you can use the following procedure to mount the input files directory in the local stack `data` directory:
+
+1. Edit the docker-compose configuration file in the project's root:
+
+```sh
+vi ./docker-compose.yml
+```
+
+2. Add the `data/any_directory_name` input files directory in the `volumnes` section, changing `any_directory_name` with the name of yours, e.g. `raygun`:
+
+File: `./docker-compose.yml`
+
+```yaml
+version: "3.9"
+services:
+  spark:
+      .
+      .
+    volumes:
+      - /path/to/input/directory/:/home/PyCon2024/Project/data/any_directory_name
+```
+
+So your massive input files will be under the `data/any_directory_name` directory.
+
+3. You can also do it by a symbolic link:
+
+```sh
+ln -s /path/to/input/directory/ data/any_directory_name
+```
+
+4. Once you finish the ingestion process (see `Raygun Data Ingestion` section), the link can be removed:
+
+Exit the `spark` docker container pressing Ctrl-D (or running the `exit` command), and run:
+
+```sh
+unlink data/any_directory_name
+```
+
+### Raygun Data Copy to S3 / Minio
+
+4. In a terminal window, restart the `spark stack`:
+
+If the local stack is already running, press Ctrl-C to stop it.
+
+Run this command:
+
+```sh
+make run
+```
+
+The spark stak docker container will have a `/home/PyCon2024/Project` directory that's the Project's root directory in your local computer.
+
+5. Open a second terminal window and enter to the `spark` docker container:
+
+```sh
+docker exec -ti spark bash
+```
+
+6. Then run the load script:
+
+```sh
+cd /home/PyCon2024/Project
+sh ./Scripts/1.init_minio.sh data/raygun
+```
+
+### Raygun Data Ingestion
+
+1. Run the ingest process:
+
+Open a terminal window and enter to the `spark` docker container:
+
+```sh
+docker exec -ti spark bash
+```
+
+Run the injestion process from scratch:
 
 ```sh
 cd Project
 MODE=ingest make raygun_ip_processing
 ```
 
-18. If the process stops, copy the counter XXXX after the last `Persisting...` message:
+When the ingestion process ends, the `Build the Hive Metastore` and `Raygun Data Reporting` will run as well.
+
+
+2. If the process stops, copy the counter XXXX after the last `Persisting...` message:
 
 For example:
 
@@ -278,29 +317,124 @@ Then run:
 MODE=ingest FROM=XXXX make raygun_ip_processing
 ```
 
-Or resume the Hive and final report:
+### Build the Hive Metastore
+
+If the igestion process stops and you don't want to resume/finish it, you can run the Hive metastore building, and be able to run the SQL queries and build the reports:
 
 ```sh
-MODE=hive_process FROM=XXXX make raygun_ip_processing
+MODE=hive_process make raygun_ip_processing
 ```
 
-19. To run the default SQL query using Spark:
+### Raygun Data Reporting
+
+1. To run the default SQL query using Spark:
 
 ```sh
 MODE=spark_sql make raygun_ip_processing
 ```
 
-20. To run a custom SQL query using Spark:
+This process generates a report in the Project's `Outputs/raygun_ip_addresses_summary` directory, where you will find a `part-00000-<some-headecimal-code>.csv` file with the results.
+
+The default SQL query that generates the results file is:
+
+```sql
+SELECT RequestIpAddress, COUNT(*) AS IpCount
+  FROM raygun_error_traces
+  GROUP BY RequestIpAddress
+  ORDER BY IpCount DESC
+```
+
+The result will be the list of IP addresses and number of times those IPs are in all the Requests evaluated.
+
+2. To run a custom SQL query using Spark:
 
 ```sh
 SQL='SELECT RequestIpAddress FROM raygun_error_traces GROUP BY RequestIpAddress' MODE=spark_sql make raygun_ip_processing
 ```
 
-21. To run the default SQL query using Trino:
+3. To run the default SQL query using Trino:
 
 ```sh
 MODE=trino_sql make raygun_ip_processing
 ```
+
+### Ingest process stats
+
+1. To check the Dataframe cluster S3 (Minio) files:
+
+This way you can do the ingestion process follow-up, because during the dataframe build step in in the ingest process, files are processed in batchs (groups of 5,000 files) and each time a batch finises, the result is written to the S3 cluster directory. If the ingestion process stops, it can be resumed from the ending point of last executed batch, and the processed files will be appended to the S3 cluster directory.
+
+Set an environment variable with the path:
+
+```sh
+CLUSTER_DIRECTORY="/home/PyCon2024/Project/Storage/minio/data-lakehouse/ClusterData/RaygunIpSummary"
+```
+
+The parquet files resulting from the dataframe build part in the ingestion process. are in the path assigned to `CLUSTER_DIRECTORY`.
+
+Get the total size for all files currently processed in the Dataframe:
+
+```sh
+du -sh ${CLUSTER_DIRECTORY}
+```
+
+Count the number of files in that directory:
+
+```sh
+ls -l ${CLUSTER_DIRECTORY} | wc -l
+```
+
+2. To check the raw input JSON files uploaded to S3 (Minio):
+
+Set an environment variable with the path:
+
+```sh
+S3_JSON_FILES_PATH="/home/PyCon2024/Project/Storage/minio/data-lakehouse/Raw/raygun"
+```
+
+Get the total size for all files:
+
+```sh
+du -sh ${S3_JSON_FILES_PATH}
+```
+
+Count the number of files in that directory:
+
+```sh
+ls -l ${S3_JSON_FILES_PATH} | wc -l
+```
+
+## Minio UI
+
+1. Run the local Minio explorer:
+
+```bash
+make open_local_minio
+```
+
+2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:9001](http://127.0.0.1:9001)
+
+3. The credentials for the login are in the `minio.env` file:<BR/>
+   Username (`MINIO_ACCESS_KEY`): minio_ak<BR/>
+   Password (`MINIO_SECRET_KEY`): minio_sk<BR/>
+
+## Monitor Spark processes
+
+To access the `pyspark` web UI:
+
+1. Run the following command in a terminal window:
+
+```sh
+make open_pyspark_ui
+```
+
+It runs the following command:
+
+```sh
+docker exec -ti spark pyspark
+```
+
+2. Go this URL in a Browser: [http://127.0.0.1:4040](http://127.0.0.1:4040)
 
 ## Run the local Jupiter Notebooks
 
@@ -313,7 +447,7 @@ make open_local_jupiter
 2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:8888/lab](http://127.0.0.1:8888/lab)
 
 3. A screen will appear asking for the  `Password or token` to authenticate.<BR/>
-   It can be found in the  `docker attach` screen (the one that stays running when you execute `make run` to start the spark stack).
+   It can be found in the  `docker attach` screen (the one that stays running when you execute `make run` to start the `spark stack`).
 
 3. Seach for a message like this:<BR/>
     `http://127.0.0.1:8888/lab?token=xxxx`
@@ -339,38 +473,6 @@ To connect the Jupiter Server in VSC (Visual Studio Code):
 
 The VSC will be connected to the Jupiter Server.
 
-## Minio UI
-
-1. Run the local Minio explorer:
-
-```bash
-make open_local_minio
-```
-
-2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:9001](http://127.0.0.1:9001)
-
-3. The credentials for the login are in the `minio.env`:<BR/>
-   Username (`MINIO_ACCESS_KEY`): minio_ak<BR/>
-   Password (`MINIO_SECRET_KEY`): minio_sk<BR/>
-
-## Monitor Spark processes
-
-To access the `pyspark` web UI:
-
-1. Run the following command in a terminal window:
-
-```sh
-make open_pyspark_ui
-```
-
-It runs the following command:
-
-```sh
-docker exec -ti spark pyspark
-```
-
-2. Go this URL in a Browser: [http://127.0.0.1:4040](http://127.0.0.1:4040)
-
 ## Pokemon Data preparation
 
 To prepare the data for the Pockemon Data Ingestion:
@@ -390,8 +492,9 @@ unzip types.zip
 
 ### Jupiter notebooks
 
-* [Pockemon data ingestion](notebooks/Pokemon-data-ingestion.ipynb)
 * [Raygun data ingestion](notebooks/Raygun-data-ingestion.ipynb)
+
+* [Pockemon data ingestion](notebooks/Pokemon-data-ingestion.ipynb)
 
 ## License
 
