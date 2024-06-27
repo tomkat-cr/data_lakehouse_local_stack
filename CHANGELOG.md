@@ -17,6 +17,13 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ### Breaks
 
 
+## 0.0.5 (2024-06-26)
+---
+
+### New
+Add resume options.
+
+
 ## 0.0.4 (2024-06-25)
 ---
 

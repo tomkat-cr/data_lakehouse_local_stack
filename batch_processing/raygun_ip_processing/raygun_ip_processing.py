@@ -8,6 +8,7 @@ Raygun data ingestion
 # import sys
 
 # Import libraries for Step 1.2
+import io
 import os
 import sys
 import pprint
@@ -21,7 +22,7 @@ from pyspark.sql.functions import col
 from pyspark.sql.functions import explode
 # from pyspark.sql.functions import monotonically_increasing_id, concat, lit
 from pyspark.errors.exceptions.captured import AnalysisException
-from pyspark.storagelevel import StorageLevel
+# from pyspark.storagelevel import StorageLevel
 
 import gc
 
@@ -29,6 +30,7 @@ import boto3
 from botocore.client import Config
 
 from minio import Minio
+from minio.error import S3Error
 
 # Libraries for Step 4
 import shutil
@@ -47,7 +49,7 @@ DEFAULT_SQL = "SELECT " + \
     " ORDER BY IpCount DESC"
 
 
-def get_config() -> dict:
+def get_config(show_params: bool = True) -> dict:
     print("Loading environment variables...")
 
     env_files = ['processing.env', 'minio.env']
@@ -72,7 +74,7 @@ def get_config() -> dict:
 
     if not config["base_path"]:
         print("Error: BASE_PATH environment variable is not set.")
-        return
+        return None
 
     # To process all JSON files:
     # testing_iteractions = None
@@ -105,6 +107,37 @@ def get_config() -> dict:
         os.getenv('DESIRED_ATTRIBUTE', "Request.IpAddress")
     config["desired_alias"] = os.getenv('DESIRED_ALIAS', "RequestIpAddress")
 
+    # Number of batches to Save Data into Apache Hive
+    config["hive_batches"] = \
+        int(os.getenv('HIVE_BATCHES', '10'))  # Splits data into 10 batches
+
+    # Hive location
+    # config["hive_location"] = config["base_path"] + "/Storage/hive/"
+    config["hive_location"] = os.getenv(
+        'HIVE_LOCATION', "/opt/hive/data/warehouse")
+
+    # Hive destination
+    config['hive_dest'] = os.getenv('HIVE_DEST', "raygun_error_traces")
+    config['hive_dest'] = f"{config['hive_location']}/{config['hive_dest']}"
+
+    # Final output result file
+    config["sql_results_path"] = f"{config['base_path']}/Outputs/" + \
+        os.getenv('RESULTS_SUB_DIRECTORY')
+    # os.getenv('RESULTS_SUB_DIRECTORY', "raygun_ip_addresses_summary")
+
+    # Hive metastore URIs
+    config["hive_metastore_uri"] = os.getenv(
+        'HIVE_METASTORE_URI', "thrift://metastore:9083")
+
+    # Spark App name
+    config["spark_appname"] = os.getenv(
+        'SPARK_APPNAME', "LakehouseLocalStack")
+
+    # Spark driver memory
+    # "3g" for small files it's better 2-3g
+    # "12g" for big files with more data it's better 4-5g
+    config["spark_driver_memory"] = os.getenv('SPARK_DRIVER_MEMORY', "3g")
+
     # Repartition the DataFrame to optimize parallel processing
     # and memory usage.
     # (Adjust the number of partitions based on your environment and data size,
@@ -115,47 +148,70 @@ def get_config() -> dict:
     # (Adjust the batch size based on your memory capacity and data size)
     config["df_read_batch_size"] = int(os.getenv('DF_READ_BATCH_SIZE', '5000'))
 
-    # Number of batches to Save Data into Apache Hive
-    config["hive_batches"] = \
-        int(os.getenv('HIVE_BATCHES', '10'))  # Splits data into 10 batches
+    # Dataframe cluster storage bucket prefix (directory)
+    config["df_cluster_storage_bucket_prefix"] = os.getenv(
+        'df_cluster_storage_bucket_prefix', "ClusterData/RaygunIpSummary")
 
-    # Final output result file
-    config["sql_results_path"] = f"{config['base_path']}/Outputs/" + \
-        os.getenv('RESULTS_SUB_DIRECTORY')
-    # os.getenv('RESULTS_SUB_DIRECTORY', "raygun_ip_addresses_summary")
+    config["df_output_s3_path"] = f"s3a://{config['minio_bucket_name']}/" + \
+        config['df_cluster_storage_bucket_prefix']
 
-    # Hive location
-    # config["hive_location"] = config["base_path"] + "/Storage/hive/"
-    config["hive_location"] = "/opt/hive/data/warehouse"
-    # Hive destination
-    config['hive_dest'] = f"{config['hive_location']}/raygun_error_traces"
-    # Hive metastore URIs
-    config["hive_metastore_uri"] = "thrift://metastore:9083"
+    # Dataframe output format
+    config["df_output_format"] = os.getenv('DF_OUTPUT_FORMAT', "parquet")
 
-    print("")
-    print("Minio Access Key:", config["minio_access_key"])
-    print("Minio Secret Key:", config["minio_secret_key"])
-    print("Minio Endpoint:", config["minio_endpoint"])
-    print("Minio Bucket Name:", config["minio_bucket_name"])
+    # Dataframe compression format
+    config["df_compression_format"] = os.getenv(
+        'DF_COMPRESSION_FORMAT', "snappy")
 
-    print("")
-    print("Base path:", config["base_path"])
-    print("Testing iteractions:",
-          config["testing_iteractions"] or "PRODUCTION")
-    print("Input local directory:", config["local_directory"])
-    print("S3 page size:", config["s3_page_size"])
-    print("S3 read timeout:", config["s3_read_timeout"])
-    print("S3 prefix:", config["s3_prefix"])
-    print("Desired attribute:", config["desired_attribute"])
-    print("Desired alias:", config["desired_alias"])
-    print("Dataframe number of partitions (for repartitioning):",
-          config["df_num_partitions"])
-    print("Dataframe read batch size:", config["df_read_batch_size"])
-    print("Hive batches:", config["hive_batches"])
-    print("Hive location:", config["hive_location"])
-    print("Hive destination:", config["hive_dest"])
-    print("Results directory path:", config["sql_results_path"])
-    print("")
+    # Include header in the Dataframe
+    config["df_input_header"] = os.getenv('DF_INPUT_HEADER', True)
+    config["df_input_header"] = \
+        False if config["df_input_header"] == '0' else True
+
+    if show_params:
+        print("")
+        print("Minio Access Key:", config["minio_access_key"])
+        print("Minio Secret Key:", config["minio_secret_key"])
+        print("Minio Endpoint:", config["minio_endpoint"])
+        print("Minio Bucket Name:", config["minio_bucket_name"])
+
+        print("")
+        print("Base path:", config["base_path"])
+        print("Testing iteractions:",
+              config["testing_iteractions"] or "PRODUCTION")
+        print("Input local directory:", config["local_directory"])
+        print("S3 page size:", config["s3_page_size"])
+        print("S3 read timeout:", config["s3_read_timeout"])
+        print("S3 prefix:", config["s3_prefix"])
+        print("Desired attribute:", config["desired_attribute"])
+        print("Desired alias:", config["desired_alias"])
+        print("")
+        print("Hive batches:", config["hive_batches"])
+        print("Hive location:", config["hive_location"])
+        print("Hive destination:", config["hive_dest"])
+        print("Hive metastore URI:", config["hive_metastore_uri"])
+        print("Results directory path:", config["sql_results_path"])
+        print("")
+
+        print("Spark App name:", config["spark_appname"])
+        print("Spark driver memory:", config["spark_driver_memory"])
+        print("Dataframe number of partitions (for repartitioning):",
+              config["df_num_partitions"])
+        print("Dataframe read batch size:", config["df_read_batch_size"])
+        print("Minio dataframe cluster bucket prefix:",
+              config["df_cluster_storage_bucket_prefix"])
+        print("Dataframe output S3 path:", config["df_output_s3_path"])
+        print("Dataframe output format:", config["df_output_format"])
+        print("Dataframe compression format:", config["df_compression_format"])
+        print("Dataframe input header:", config["df_input_header"])
+        print("")
+
+        mode = os.environ.get('MODE', None)
+        # sql = os.environ.get('SQL', None)
+        ingest_from = os.environ.get('FROM', "")
+        if mode:
+            print("Mode:", mode)
+        if ingest_from:
+            print("Ingest from:", ingest_from)
 
     return config
 
@@ -200,8 +256,8 @@ def get_spark_session(config: dict) -> SparkSession.Builder:
     """
     Get a Spark session.
     """
-    return SparkSession.builder \
-        .appName("RaygunErrorTraceAnalysis") \
+    spark = SparkSession.builder \
+        .appName(config["spark_appname"]) \
         .config(
             "spark.driver.host",
             "localhost") \
@@ -219,15 +275,38 @@ def get_spark_session(config: dict) -> SparkSession.Builder:
             config["hive_metastore_uri"]) \
         .config(
             "spark.driver.memory",
-            "15g") \
+            config["spark_driver_memory"]) \
+        .master("local[*]") \
         .enableHiveSupport() \
         .getOrCreate()
+
+    # IMPORTANT:
+    # .master("local[*]") \
+    # Is equivalent to:
+    #
+    # Iver:
+    # https://sparkbyexamples.com/spark/what-does-setmaster-local-mean-in-spark/
+    # from pyspark.conf import SparkConf
+    # from pyspark.context import SparkContext
+    # conf = SparkConf()
+    # conf.setMaster("local[*]")
+
+    return spark
 
 
 def list_files_minio(config: dict, resume_from: int) -> list:
     """
     List files in a Minio bucket under a specific prefix using boto3.
     """
+
+    # Iver: To filter the files fro a specific Key
+    # kwargs = {‘Bucket’: bucket,
+    #           ‘Prefix’: prefix,
+    #           ‘StartAfter’: start_after}
+    # message_entries = []
+    # try:
+    #     response = S3_CLIENT.list_objects_v2(**kwargs)
+
     session = boto3.session.Session()
     s3 = session.client(
         's3',
@@ -310,6 +389,8 @@ def ingest(resume_from: int = -1):
 
     # Load environment variables
     config = get_config()
+    if not config:
+        return False
 
     # Start the timer
     print("")
@@ -329,6 +410,8 @@ def ingest(resume_from: int = -1):
     print("")
 
     spark = get_spark_session(config)
+    if not spark:
+        return False
 
     # Check spark configuration
 
@@ -345,7 +428,7 @@ def ingest(resume_from: int = -1):
     print(">> Uploading Multiple JSON Files to MinIO...")
     print("")
 
-    # MinIO bucket name
+    # MinIO bucket name for Raw files
     bucket_name = config["minio_bucket_name"]
 
     # Path to the JSON files in MinIO
@@ -369,8 +452,18 @@ def ingest(resume_from: int = -1):
         secure=False
     )
 
-    # Create the bucket if it doesn't exist
-    if minio_client.bucket_exists(bucket_name):
+    # Create the bucket for Raw files if it doesn't exist
+    try:
+        create_bucket = not minio_client.bucket_exists(bucket_name)
+    except S3Error as err:
+        print(err)
+        print(f"Creating bucket {bucket_name}")
+        create_bucket = True
+    except Exception as err:
+        print(err)
+        return False
+
+    if not create_bucket:
         print(f"Bucket {bucket_name} already exists. Skipping...")
     else:
         minio_client.make_bucket(bucket_name)
@@ -380,6 +473,50 @@ def ingest(resume_from: int = -1):
                 file_path = os.path.join(config["local_directory"], filename)
                 minio_client.fput_object(bucket_name, filename, file_path)
                 print(f"Uploaded {filename} to {bucket_name}")
+
+    # Verify Dataframes bucket prefix existence
+    df_cluster_bucket_prefix = config['df_cluster_storage_bucket_prefix']
+    # Verify if the prefix exists in the MinIO bucket
+    objects = minio_client.list_objects(
+        bucket_name,
+        prefix=df_cluster_bucket_prefix,
+        recursive=False)
+    create_bucket = not any(objects)
+
+    if resume_from <= 0:
+        if not create_bucket:
+            print(f"Bucket {config['df_cluster_storage_bucket_prefix']}" +
+                  " already exists. Erasing its content...")
+            minio_client.remove_object(
+                bucket_name,
+                df_cluster_bucket_prefix,
+            )
+            create_bucket = True
+
+    if create_bucket:
+        # Create the prefix directory in the Minio bucket
+        try:
+            minio_client.put_object(
+                bucket_name,
+                f"{df_cluster_bucket_prefix}/.gitkeep",
+                data=io.BytesIO(b""),
+                length=0
+            )
+            print(f"Created prefix directory {df_cluster_bucket_prefix}" +
+                  " in bucket {bucket_name}")
+        except S3Error as err:
+            print("")
+            print("Failed to create prefix directory " +
+                  f"{df_cluster_bucket_prefix} in bucket {bucket_name}: {err}")
+            print("")
+            return False
+        except Exception as err:
+            print("")
+            print("An unexpected error occurred creating prefix directory" +
+                  f" {df_cluster_bucket_prefix} in bucket {bucket_name}:")
+            print(err)
+            print("")
+            return False
 
     ########################
     ########################
@@ -426,6 +563,30 @@ def ingest(resume_from: int = -1):
     print(f"(Set 'df' from: {json_files_path})")
     print(f"(In chucks of: {config['df_read_batch_size']})")
 
+    # Create a new schema from the raygun json structure
+    # https://sparkbyexamples.com/pyspark/pyspark-create-an-empty-dataframe/
+    # from pyspark.sql.types import StructType, StructField, StringType
+    # if config["desired_attribute"]:
+    #     df_schema = StructType([
+    #         StructField(config["desired_attribute"], StringType(), True),
+    #     ])
+    # else:
+    #     df_schema = StructType([
+    #         StructField("Error.Message", StringType(), True),
+    #         StructField("Error.ClassName", StringType(), True),
+    #         StructField("Error.FileName", StringType(), True),
+    #         StructField("Error.StackTrace", StringType(), True),
+    #         StructField("MachineName", StringType(), True),
+    #         StructField("Request.HostName", StringType(), True),
+    #         StructField("Request.Url", StringType(), True),
+    #         StructField("Request.HttpMethod", StringType(), True),
+    #         StructField("Request.IpAddress", StringType(), True),
+    #         StructField("Request.QueryString", StringType(), True),
+    #         StructField("Request.Headers", StringType(), True),
+    #         StructField("Request.Data", StringType(), True),
+    #     ])
+    # df_final = spark.createDataFrame([], df_schema)
+
     # Process the files in batches
     init_ts = show_curr_datetime()
     j = 0
@@ -444,8 +605,22 @@ def ingest(resume_from: int = -1):
             df = spark.read.option("multiline", "true") \
                 .json(batch_files)
 
-        # Persist the DataFrame to disk
+        # Write the chunck to the spark cluster disk (when cluster dies,
+        # disk will be erased unless it's written on S3)
         print(f"Persisting DataFrame to disk (round {j})...")
+        df \
+            .write \
+            .mode("append") \
+            .format(config["df_output_format"]) \
+            .option("compression", config["df_compression_format"]) \
+            .save(config["df_output_s3_path"],
+                  header=config["df_input_header"])
+
+        # After reading all the JSON files in batches, we need to union all the
+        # batches to get the complete DataFrame with all the data
+        # df_final = df.unionAll(df_final)
+
+        # Persist the DataFrame to disk
 
         # Cache the DataFrame in memory
         # df.cache()
@@ -454,8 +629,8 @@ def ingest(resume_from: int = -1):
         # spark.catalog.cacheTable("cached_df", df)
         # TypeError: storageLevel must be of type pyspark.StorageLevel
 
-        df.persist(StorageLevel.MEMORY_AND_DISK)
-        spark.catalog.cacheTable("cached_df", df)
+        # df.persist(StorageLevel.MEMORY_AND_DISK)
+        # spark.catalog.cacheTable("cached_df", df)
         # TypeError: storageLevel must be of type pyspark.StorageLevel
 
         # Call specific function to process data
@@ -466,97 +641,24 @@ def ingest(resume_from: int = -1):
            j >= config["testing_iteractions"]:
             break
 
-    # After reading all the JSON files in batches, we need to union all the
-    # batches to get the complete DataFrame with all the data
-    df = df.unionAll(spark.createDataFrame([], df.schema))
-
-    # Repartition the DataFrame to optimize parallel processing and
-    # memory usage.
-    # (Adjust the number of partitions based on your environment and data size)
-    df = df.repartition(config["df_num_partitions"])
-
-    # To get the entire DataFrame without reading the JSON files again
-    # We can cache the DataFrame in memory or disk after reading it
-    # This way, we can retrieve the cached DataFrame later without re-reading
-    # the files.
-
-    # Persist (cache) the DataFrame in disk to be used later or multiple times
-    df.persist(StorageLevel.MEMORY_AND_DISK)
-    spark.catalog.cacheTable("cached_df", df)
-
-    hive_process(df, start_time)
-
+    print("")
+    print("*************************")
+    print("* Ingestion Process end *")
+    print("*************************")
     show_curr_datetime(init_ts)
 
+    # Finish the process by creating the Hive metastore
+    hive_process(df, start_time)
 
-def get_spark_content():
-
-    # To get the database/schema name, you can use:
-    # 1. spark.catalog.listDatabases() to list all databases
-    # 2. spark.catalog.listTables("database_name") to list tables in a database
-    # 3. df.printSchema() to print the schema of a DataFrame
-
-    config = get_config()
-    spark = get_spark_session(config)
-
-    # Get the current_schema() from spark?
-    current_database = spark.catalog.currentDatabase()
-    print(f"Current database: {current_database}")
-
-    # Get the dataframe for the current database
-    df = spark.sql("SELECT * FROM cached_df")
-    print("Dataframe schema structure:")
-
-    try:
-        # Check if any previous data exists
-        if spark.catalog.isCached("cached_df"):
-            # Retrieve the cached DataFrame
-            print("Loading cached DataFrame...")
-            df = spark.catalog.getCachedDataFrame("cached_df")
-            # You can now work with the cached_df DataFrame without re-reading
-            # the JSON files
-            print("")
-            print("Dataframe schema structure:")
-            # Show schema structure
-            df.printSchema()
-        else:
-            print("No cached DataFrame found [1]...")
-            # Initialize an empty DataFrame
-            # df = spark.createDataFrame([], schema=None)
-    except AnalysisException as e:
-        # pyspark.errors.exceptions.captured.AnalysisException: [TABLE_OR_VIEW_NOT_FOUND] The table or view `cached_df` cannot be found. Verify the spelling and correctness of the schema and catalog.
-        # If you did not qualify the name with a schema, verify the current_schema() output, or qualify the name with the correct schema and catalog.
-        # To tolerate the error on drop use DROP VIEW IF EXISTS or DROP TABLE IF EXISTS.;
-        # 'UnresolvedRelation [cached_df], [], false
-        print(f"Error: {e}")
-        print("No cached DataFrame found [2]...")
-    except Exception as e:
-        print(f"Error: {e}")
-        print("No cached DataFrame found [3]...")
-
-    db_list = spark.catalog.listDatabases()
-    print(f"Databases: {db_list}")
-
-    # R:
-    # Databases: [Database(name='default', catalog='spark_catalog',
-    #    description='Default Hive database',
-    #    locationUri='file:/opt/hive/data/warehouse')]
-
-    # Get the default database
-    default_db = spark.catalog.listDatabases()[0]
-    print(f"Default database: {default_db.name}")
-
-    # List tables in the default database
-    tables = spark.catalog.listTables(default_db.name)
-    print(f"Tables in {default_db.name}:")
-    for table in tables:
-        print(f"- {table.name}")
+    return True
 
 
 def hive_process(df: DataFrame = None, start_time: float = None):
 
     # Load environment variables
-    config = get_config()
+    config = get_config(df is None)
+    if not config:
+        return False
 
     # Start the timer
     print("")
@@ -576,6 +678,8 @@ def hive_process(df: DataFrame = None, start_time: float = None):
     print("")
 
     spark = get_spark_session(config)
+    if not spark:
+        return False
 
     # # Load a table as a DataFrame
     # default_db = spark.catalog.listDatabases()[0]
@@ -586,17 +690,26 @@ def hive_process(df: DataFrame = None, start_time: float = None):
     if df:
         print("Resume spark processing from the last Dataframe...")
     else:
-        if spark.catalog.isCached("cached_df"):
-            # Retrieve the cached DataFrame
-            print("Loading cached DataFrame...")
-            df = spark.catalog.getCachedDataFrame("cached_df")
-            # You can now work with the cached_df DataFrame without
-            # re-reading the JSON files
-        else:
-            print("No cached DataFrame found...")
-            return
-            # Initialize an empty DataFrame
-            # df = spark.createDataFrame([], schema=None)
+        # if spark.catalog.isCached("cached_df"):
+        #     # Retrieve the cached DataFrame
+        #     print("Loading cached DataFrame...")
+        #     df = spark.catalog.getCachedDataFrame("cached_df")
+        #     # You can now work with the cached_df DataFrame without
+        #     # re-reading the JSON files
+        # else:
+        #     print("No cached DataFrame found...")
+        #     return False
+        #     # Initialize an empty DataFrame
+        #     # df = spark.createDataFrame([], schema=None)
+
+        # Para retormar....
+        df = spark.read.load(config["df_output_s3_path"])
+
+        # Repartition the DataFrame to optimize parallel processing and
+        # memory usage.
+        # (Adjust the number of partitions based on your environment and
+        #  data size)
+        df = df.repartition(config["df_num_partitions"])
 
     if not start_time:
         start_time = show_curr_datetime()
@@ -743,10 +856,12 @@ def hive_process(df: DataFrame = None, start_time: float = None):
 
     # Stop the timer
     print("")
-    print("*************************")
-    print("* Ingestion Process end *")
-    print("*************************")
+    print("****************************")
+    print("* Save to Hive Process end *")
+    print("****************************")
     show_curr_datetime(start_time)
+
+    return True
 
 
 def get_spark_query(sql: str = None):
@@ -755,8 +870,12 @@ def get_spark_query(sql: str = None):
     Get the IP addresses summary
     """
 
-    config = get_config()
+    config = get_config(False)
+    if not config:
+        return False
     spark = get_spark_session(config)
+    if not spark:
+        return False
 
     if not sql:
         sql = DEFAULT_SQL
@@ -829,10 +948,74 @@ def get_trino_query(sql: str = None):
         print(row)
 
 
+def get_spark_content():
+
+    # To get the database/schema name, you can use:
+    # 1. spark.catalog.listDatabases() to list all databases
+    # 2. spark.catalog.listTables("database_name") to list tables in a database
+    # 3. df.printSchema() to print the schema of a DataFrame
+
+    config = get_config()
+    if not config:
+        return False
+    spark = get_spark_session(config)
+    if not spark:
+        return False
+
+    # Get the current_schema() from spark?
+    current_database = spark.catalog.currentDatabase()
+    print(f"Current database: {current_database}")
+
+    # Get the dataframe for the current database
+    df = spark.sql("SELECT * FROM cached_df")
+    print("Dataframe schema structure:")
+
+    try:
+        # Check if any previous data exists
+        if spark.catalog.isCached("cached_df"):
+            # Retrieve the cached DataFrame
+            print("Loading cached DataFrame...")
+            df = spark.catalog.getCachedDataFrame("cached_df")
+            # You can now work with the cached_df DataFrame without re-reading
+            # the JSON files
+            print("")
+            print("Dataframe schema structure:")
+            # Show schema structure
+            df.printSchema()
+        else:
+            print("No cached DataFrame found [1]...")
+            # Initialize an empty DataFrame
+            # df = spark.createDataFrame([], schema=None)
+    except AnalysisException as e:
+        print(f"Error: {e}")
+        print("No cached DataFrame found [2]...")
+    except Exception as e:
+        print(f"Error: {e}")
+        print("No cached DataFrame found [3]...")
+
+    db_list = spark.catalog.listDatabases()
+    print(f"Databases: {db_list}")
+
+    # R:
+    # Databases: [Database(name='default', catalog='spark_catalog',
+    #    description='Default Hive database',
+    #    locationUri='file:/opt/hive/data/warehouse')]
+
+    # Get the default database
+    default_db = spark.catalog.listDatabases()[0]
+    print(f"Default database: {default_db.name}")
+
+    # List tables in the default database
+    tables = spark.catalog.listTables(default_db.name)
+    print(f"Tables in {default_db.name}:")
+    for table in tables:
+        print(f"- {table.name}")
+
+
 if __name__ == "__main__":
     # Get mode parameter
-    mode = sys.argv[1] if len(sys.argv) > 1 else None
-    # sql = sys.argv[1] if len(sys.argv) > 2 else None
+    # mode = sys.argv[1] if len(sys.argv) > 1 else None
+    mode = os.environ.get('MODE', None)
     sql = os.environ.get('SQL', None)
     ingest_from = os.environ.get('FROM', "")
     if not ingest_from:
@@ -840,8 +1023,8 @@ if __name__ == "__main__":
     else:
         ingest_from = int(ingest_from)
     if mode == "ingest":
-        ingest(ingest_from)
-        get_spark_query(sql)
+        if ingest(ingest_from):
+            get_spark_query(sql)
     elif mode == "spark_sql":
         get_spark_query(sql)
     elif mode == "trino_sql":
