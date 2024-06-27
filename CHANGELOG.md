@@ -22,6 +22,9 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 
 ### New
 Add resume options.
+Open 4040 port to run pyspark web UI with `docker exec -ti spark pyspark` in the docker-composer configuration.
+Add `make open_pyspark_ui` option.
+Add instructions to preare data and run the raygun ingestion process.
 
 
 ## 0.0.4 (2024-06-25)

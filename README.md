@@ -134,7 +134,15 @@ make open_local_minio
 
 ## Large number of input data files
 
-If you have more than 1000 raw data files, you can use the following command to mount the direcotry in the local stack `data` directory:
+If you have more than 1000 raw data input files, you can use the following proedure to mount the input files directory in the local stack `data` directory:
+
+1. Edit the docker-compose configuration file in the project's root:
+
+```sh
+vi ./docker-compose.yml
+```
+
+2. Add the `data/any_directory_name` input files directory in the `volumnes` section, changing `any_directory_name` with the name of yours, e.g. `raygun`:
 
 File: `./docker-compose.yml`
 
@@ -150,21 +158,228 @@ services:
 
 So your massive input files will be under the `data/any_directory_name` directory.
 
-You can also do it by a symbolic link:
+3. You can also do it by a symbolic link:
 
 ```sh
 ln -s /path/to/input/directory/ data/any_directory_name
 ```
 
-To destroy the link:
+4. In a terminal window, run the spark stack:
+
+```sh
+make run
+```
+
+5. Open a second terminal window and enter to the `spark` docker container:
+
+```sh
+docker exec -ti spark bash
+```
+
+6. Then run the load script:
+
+```sh
+cd Project
+sh /home/PyCon2024/Project/Scripts/1.init_minio.sh data/raygun
+```
+
+7. To destroy the link:
+
+Exit the second terminal window and run:
 
 ```sh
 unlink data/any_directory_name
 ```
 
-## Data preparation
+## Raygun Data preparation
 
-Decompress the example data files for the Pockemon Data Ingestion:
+1. Go to Raygun ([https://app.raygun.com](https://app.raygun.com)), and select the corresponding Application.
+
+2. Put the check mark in the error you want to analyze.
+
+3. Click on the `Export selected groups` button.
+
+4. Click on the `Add to export list` button.
+
+5. A message like this will be shown:
+
+```
+Great work! Those error groups have been added to the export list.
+View your exports by clicking here, or by using the "Export" link under "Crash Reporting" in the sidebar.
+```
+
+6. Under `Crash Reporting` in the sidebar, click on the `Export` link.
+
+7. Click on the `Start export` button.
+
+```
+Confirm export
+
+Export all errors between XXXX and YYYY.
+
+Exports can take some time depending on the volume of errors being exported. You will be notified when your export is ready to be downloaded. Once an export is started, another cannot begin until the first has completed.
+
+Exports are generated as a single compressed file. [Learn how to extract them](https://raygun.com/documentation/product-guides/crash-reporting/exporting-data/)
+
+Recipients:
+example@address.com
+```
+
+8. Click on the `Start export` button.
+
+9. Wait until the compressed file arraives to your email inbox.
+
+10. A message arrives to your inbox like this:
+
+```
+Subject: Your Raygun Crash Reporting export is complete for "XXXX"
+
+Your error export has been generated
+We have completed the error group export for your application "XXXX". You can now download it below.
+Download export - XXX MB
+Learn how to extract 7z files
+```
+
+11. Click on the `Download export - XXX MB` link.
+
+12. Put the compressed file in a local directory like: `${HOME}/Downloads/raygun-data`
+
+13. Uncompress the file.
+
+14. A new directory will be created with the JSON files, each one with a error for a date/time, in the directory: `${HOME}/Downloads/raygun-data/assets`
+
+15. To check the input files size:
+
+```sh
+du -sh ${HOME}/Downloads/raygun-data/assets
+```
+
+16. Move the files to the `data/raygun` directory in the Project, or perform the `Large number of input data files` procedure to liken the `${HOME}/Downloads/raygun-data/assets` to the `data/raygun` directory.
+
+17. Run the ingest process:
+
+```sh
+cd Project
+MODE=ingest make raygun_ip_processing
+```
+
+18. If the process stops, copy the counter XXXX after the last `Persisting...` message:
+
+For example:
+
+```
+Persisting DataFrame to disk (round X)...
+3) From: XXXX | To: YYYY
+```
+
+Then run:
+
+```sh
+MODE=ingest FROM=XXXX make raygun_ip_processing
+```
+
+Or resume the Hive and final report:
+
+```sh
+MODE=hive_process FROM=XXXX make raygun_ip_processing
+```
+
+19. To run the default SQL query using Spark:
+
+```sh
+MODE=spark_sql make raygun_ip_processing
+```
+
+20. To run a custom SQL query using Spark:
+
+```sh
+SQL='SELECT RequestIpAddress FROM raygun_error_traces GROUP BY RequestIpAddress' MODE=spark_sql make raygun_ip_processing
+```
+
+21. To run the default SQL query using Trino:
+
+```sh
+MODE=trino_sql make raygun_ip_processing
+```
+
+## Run the local Jupiter Notebooks
+
+1. Run the local Jupiter engine:
+
+```bash
+make open_local_jupiter
+```
+
+2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:8888/lab](http://127.0.0.1:8888/lab)
+
+3. A screen will appear asking for the  `Password or token` to authenticate.<BR/>
+   It can be found in the  `docker attach` screen (the one that stays running when you execute `make run` to start the spark stack).
+
+3. Seach for a message like this:<BR/>
+    `http://127.0.0.1:8888/lab?token=xxxx`
+
+4. The `xxxx` is the `Password or token` to authenticate.
+
+## Connect to the Jupiter Server in VSC
+
+To connect the Jupiter Server in VSC (Visual Studio Code):
+
+1. In the docker attach screen, look for a message like this:<BR/>
+    `http://127.0.0.1:8888/lab?token=xxxx`
+
+2. The `xxxx` is the password to be used when the Jupyter Kernel Connection ask for it...
+
+2. Then select the `Existing Jupiter Server` option.
+
+3. Specify the URL: `http://127.0.0.1:8888`
+
+4. Specify the password copied in seconf step: `xxxx`
+
+5. Select the desired Kernel from the list
+
+The VSC will be connected to the Jupiter Server.
+
+## Minio UI
+
+1. Run the local Minio explorer:
+
+```bash
+make open_local_minio
+```
+
+2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:9001](http://127.0.0.1:9001)
+
+3. The credentials for the login are in the `minio.env`:<BR/>
+   Username (`MINIO_ACCESS_KEY`): minio_ak<BR/>
+   Password (`MINIO_SECRET_KEY`): minio_sk<BR/>
+
+## Monitor Spark processes
+
+To access the `pyspark` web UI:
+
+1. Run the following command in a terminal window:
+
+```sh
+make open_pyspark_ui
+```
+
+It runs the following command:
+
+```sh
+docker exec -ti spark pyspark
+```
+
+2. Go this URL in a Browser: [http://127.0.0.1:4040](http://127.0.0.1:4040)
+
+## Pokemon Data preparation
+
+To prepare the data for the Pockemon Data Ingestion:
+
+1. Download the compressed files from: [https://github.com/alejogm0520/lakehouses-101-pycon2024/tree/main/data](https://github.com/alejogm0520/lakehouses-101-pycon2024/tree/main/data)
+
+2. Copy those files to the `data` directory.
+
+3. Decompress the example data files:
 
 ```bash
 cd data
