@@ -102,8 +102,8 @@ Readings:
 Clone the respository:
 
 ```bash
-git clone https://github.com/tomkat-cr/lakehouses-101-pycon2024.git
-cd lakehouses-101-pycon2024
+git clone https://github.com/tomkat-cr/data_lakehouse_local_stack.git
+cd data_lakehouse_local_stack
 ```
 
 Download the required packages:
