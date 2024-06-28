@@ -19,10 +19,12 @@ SCRIPTS_DIR="`pwd`" ;
 CURRENT_PYTHON_VERSION=$(python3 --version | awk '{print $2}')
 # Preserve only mayor and intermediate version numbers from CURRENT_PYTHON_VERSION
 CURRENT_PYTHON_VERSION=$(echo "${CURRENT_PYTHON_VERSION}" | awk -F. '{print $1"."$2}')
+# Application entry point
+APP_NAME="main"
 # Application directory
-APP_NAME="raygun_ip_processing"
+APP_DIR="raygun_ip_processing"
 
-cd "${SCRIPTS_DIR}/${APP_NAME}"
+cd "${SCRIPTS_DIR}/${APP_DIR}"
 python3 -m venv venv
 source venv/bin/activate
 if [ -f "requirements.txt" ]; then

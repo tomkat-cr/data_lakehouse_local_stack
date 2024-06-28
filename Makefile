@@ -24,6 +24,9 @@ open_local_jupiter:
 open_local_minio:
 	open http://127.0.0.1:9001
 
+open_local_trino:
+	open http://127.0.0.1:8081
+
 open_pyspark_ui:
 	docker exec -ti spark pyspark
 

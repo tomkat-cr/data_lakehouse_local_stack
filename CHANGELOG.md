@@ -17,6 +17,18 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ### Breaks
 
 
+## 0.0.6 (2024-06-28)
+---
+
+### New
+Automatic resume using MODE=resume.
+"hive_verification" process to check how many files has been processed iin the Dataframe (before the Hive tables population).
+
+### Changes
+/home/PyCon2024 directory renamed to /home/LocalLakeHouse.
+Include the data lakehouse layers description in README.
+
+
 ## 0.0.5 (2024-06-26)
 ---
 

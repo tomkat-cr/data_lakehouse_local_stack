@@ -1,18 +1,20 @@
-# Data Lakehouse local stack
+# Data Lakehouse Local Stack
 
 **Data Lakehouse local stack with PySpark, Trino, and Minio**
 
-This repository aims to introduce the Data Lakehouse pattern as a suitable and flexible solution to transit small companies to established enterprises, allowing to implement a local Data Lakehouse from OpenSource solutions, compatible with Cloud production grade tools.
+This repository aims to introduce the Data Lakehouse pattern as a suitable and flexible solution to transit small companies to established enterprises, allowing to implement a local data lakehouse from OpenSource solutions, compatible with Cloud production grade tools.
+
+It also includes an example to process Raygun error data and the IP address occurrence.
 
 ## Introduction
 
 In the world of ML and AI, **data** is the crown jewel, but it's normally lost in [Swamps](https://www.superannotate.com/blog/data-lakes-vs-data-swamps-vs-data-warehouse) due to bad practices with **Data Lakes** when companies try to productionize their data.
 
-**Data Warehouses** are costly solutions for this problem, and increase the complexity of simple Lakes.
+**Data Warehouses** are costly solutions for this problem, and increase the complexity of simple Data Lakes.
 
 Here's where **Data Lakehouses** come into action, being a hybrid solution with the best of both worlds. ([source](https://2024.pycon.co/en/talks/23)).
 
-**Data Lakehouses** aim to combine elements of data warehousing with core elements of the data lake. Put simply, they are designed to provide the lower costs of cloud storage even for large amounts of raw data alongside support for certain analytics concepts – such as SQL access to curated and structured data tables stored in relational databases, or support for large scale processing of Big Data analytics or machine learning workloads ([source](https://www.exasol.com/resource/data-lake-warehouse-or-lakehouse/)).
+**Data Lakehouses** aim to combine elements of data warehousing with core elements of data lakes. Put simply, they are designed to provide the lower costs of cloud storage even for large amounts of raw data alongside support for certain analytics concepts – such as SQL access to curated and structured data tables stored in relational databases, or support for large scale processing of Big Data analytics or Machine Learning workloads ([source](https://www.exasol.com/resource/data-lake-warehouse-or-lakehouse/)).
 
 <!--
 ![Common DatalakeHouse technologies](./images/1676637608474.png)<BR/>
@@ -35,7 +37,7 @@ A medallion architecture is a data design pattern used to logically organize dat
 
 * Gold: feature/aggregated data store.
 
-* Platinum (optional): in a faster format like a high-speed DBMS, because `gold` is stored in cloud bucket storage (like AWS S3(), and it's slow for e.g. real-time dashboard.
+* Platinum (optional): in a faster format like a high-speed DBMS, because `gold` is stored in cloud bucket storage (like AWS S3), and it's slow for e.g. real-time dashboard.
 
 Readings:
 
@@ -43,34 +45,79 @@ Readings:
 * https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion
 * https://medium.com/@junshan0/medallion-architecture-what-why-and-how-ce07421ef06f
 
+## Data Lakehouse Layers
+
+![DatalakeHouse components](./images/Data_Lakehouse_framework_and_process_flow.jpg)<BR/>
+([Image source](https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics))
+
+Storing structured and unstructured data in a data lakehouse presents many benefits to a data organization, namely making it easier and more seamless to support both business intelligence and data science workloads. This starts at the data source.
+
+We describe the five layers in this section, but let’s first talk about the sources that feed the Lake House Architecture.
+
+### Data sources
+
+The Lake House Architecture enables you to ingest and analyze data from a variety of sources. Many of these sources such as line of business (LOB) applications, ERP applications, and CRM applications generate highly structured batches of data at fixed intervals. In addition to internal structured sources, you can receive data from modern sources such as web applications, mobile devices, sensors, video streams, and social media. These modern sources typically generate semi-structured and unstructured data, often as continuous streams.
+
+### Data ingestion layer
+
+The ingestion layer is responsible for ingesting data into the Lake House storage layer. It provides the ability to connect to internal and external data sources over a variety of protocols. It can ingest and deliver batch as well as real-time streaming data into a data warehouse as well as data lake components of the Lake House storage layer.
+
+### Data storage layer
+
+The data storage layer is responsible for providing durable, scalable, and cost-effective components to store and manage vast quantities of data. In a Lake House Architecture, the data warehouse and data lake natively integrate to provide an integrated cost-effective storage layer that supports unstructured as well as highly structured and modeled data. The storage layer can store data in different states of consumption readiness, including raw, trusted-conformed, enriched, and modeled.
+
+### Catalog layer
+
+The catalog layer is responsible for storing business and technical metadata about datasets hosted in the Lake House storage layer. In a Lake House Architecture, the catalog is shared by both the data lake and data warehouse, and enables writing queries that incorporate data stored in the data lake as well as the data warehouse in the same SQL. It allows you to track versioned schemas and granular partitioning information of datasets. As the number of datasets grows, this layer makes datasets in the Lake House discoverable by providing search capabilities.
+
+### Processing layer
+
+Components in the processing layer are responsible for transforming data into a consumable state through data validation, cleanup, normalization, transformation, and enrichment. The processing layer provides purpose-built components to perform a variety of transformations, including data warehouse style SQL, big data processing, and near-real-time ETL.
+
+The processing layer provides the quickest time to market by providing purpose-built components that match the right dataset characteristics (size, format, schema, speed), processing task at hand, and available skillsets (SQL, Spark). The processing layer can cost-effectively scale to handle large data volumes and provide components to support schema-on-write, schema-on-read, partitioned datasets, and diverse data formats. The processing layer can access the unified Lake House storage interfaces and common catalog, thereby accessing all the data and metadata in the Lake House. This has the following benefits:
+
+Avoids data redundancies, unnecessary data movement, and duplication of ETL code that may result when dealing with a data lake and data warehouse separately
+Reduces time to market.
+
+### Data consumption layer
+
+The data consumption layer is responsible for providing scalable and performant components that use unified Lake House interfaces to access all the data stored in Lake House storage and all the metadata stored in the Lake House catalog. It democratizes analytics to enable all personas across an organization by providing purpose-built components that enable analysis methods, including interactive SQL queries, warehouse style analytics, BI dashboards, and ML.
+
+Sources:
+* [https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/](https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/)
+* [https://www.montecarlodata.com/blog-data-lakehouse-architecture-5-layers/](https://www.montecarlodata.com/blog-data-lakehouse-architecture-5-layers/)
+
 ## Data Lakehouse Components
 
+<!--
 ![DatalakeHouse components](./images/1_xuE8_N_LxoP49S1Pu5Wn5A.webp)<BR/>
 ([Image source](https://medium.com/adfolks/data-lakehouse-paradigm-of-decade-caa286f5b7a1))
-
-<!--
-![Common DatalakeHouse technologies](./images/Data_Lake_vs_Data_Warehouse.webp)<BR/>
-([Image source](https://www.montecarlodata.com/blog-data-lake-vs-data-warehouse))
 -->
 
+![Common DatalakeHouse technologies](./images/Data_Lake_vs_Data_Warehouse.webp)<BR/>
+([Image source](https://www.montecarlodata.com/blog-data-lake-vs-data-warehouse))
+
+Components used on each Layer:
+
+* **Minio / S3**<BR/>
+  Data sources, storage layer, landing buckets.<BR/>
+  [https://min.io](https://min.io)
+
 * **Apache Spark**<BR/>
-  Processing Layer.<BR/>
+  Processing layer.<BR/>
   [https://spark.apache.org](https://spark.apache.org)<BR/>
   [https://spark.apache.org/docs/latest/api/python/index.html](https://spark.apache.org/docs/latest/api/python/index.html)<BR/>
 
-* **Minio**<BR/>
-  Landing buckets and data storage layer.<BR/>
-  [https://min.io](https://min.io)
-
 * **Apache Hive**<BR/>
-  Data catalog.<BR/>
+  Data catalog on catalog layer.<BR/>
   [https://hive.apache.org](https://hive.apache.org)
 
 * **Postgres Database**<BR/>
   Data catalog persistence.<BR/>
   [https://www.postgresql.org](https://www.postgresql.org)
 
-* **Delta Lake** (open table format)<BR/>
+* **Delta Lake**<BR/>
+  Open table format.<BR/>
   [https://delta.io](https://delta.io)<BR/>
   Open source framework developed by Databricks. Like other modern table formats, it employs file-level listings, improving the speed of queries considerably compared to the  directory-level listing of Hive. Offers enhanced CRUD operations, including the ability to update and delete records in a data lake which would previously have been immutable.<BR/>
   (Click [here](https://www.starburst.io/data-glossary/open-table-formats/) for more information about Open Table Formats).<BR/>
@@ -236,7 +283,7 @@ services:
       .
       .
     volumes:
-      - /path/to/input/directory/:/home/PyCon2024/Project/data/any_directory_name
+      - /path/to/input/directory/:/home/LocalLakeHouse/Project/data/any_directory_name
 ```
 
 So your massive input files will be under the `data/any_directory_name` directory.
@@ -267,7 +314,7 @@ Run this command:
 make run
 ```
 
-The spark stak docker container will have a `/home/PyCon2024/Project` directory that's the Project's root directory in your local computer.
+The spark stak docker container will have a `/home/LocalLakeHouse/Project` directory that's the Project's root directory in your local computer.
 
 5. Open a second terminal window and enter to the `spark` docker container:
 
@@ -278,7 +325,7 @@ docker exec -ti spark bash
 6. Then run the load script:
 
 ```sh
-cd /home/PyCon2024/Project
+cd /home/LocalLakeHouse/Project
 sh ./Scripts/1.init_minio.sh data/raygun
 ```
 
@@ -367,7 +414,7 @@ This way you can do the ingestion process follow-up, because during the datafram
 Set an environment variable with the path:
 
 ```sh
-CLUSTER_DIRECTORY="/home/PyCon2024/Project/Storage/minio/data-lakehouse/ClusterData/RaygunIpSummary"
+CLUSTER_DIRECTORY="/home/LocalLakeHouse/Project/Storage/minio/data-lakehouse/ClusterData/RaygunIpSummary"
 ```
 
 The parquet files resulting from the dataframe build part in the ingestion process. are in the path assigned to `CLUSTER_DIRECTORY`.
@@ -389,7 +436,7 @@ ls -l ${CLUSTER_DIRECTORY} | wc -l
 Set an environment variable with the path:
 
 ```sh
-S3_JSON_FILES_PATH="/home/PyCon2024/Project/Storage/minio/data-lakehouse/Raw/raygun"
+S3_JSON_FILES_PATH="/home/LocalLakeHouse/Project/Storage/minio/data-lakehouse/Raw/raygun"
 ```
 
 Get the total size for all files:
@@ -506,6 +553,6 @@ This project is maintained by [Carlos J. Ramirez](https://www.carlosjramirez.com
 
 It was forked from the [Data Lakehouse 101](https://github.com/alejogm0520/lakehouses-101-pycon2024) repository made by [Alejandro Gómez Montoya](https://github.com/alejogm0520).
 
-For more information or to contribute to the project, visit [Data Lakehouse 101 on GitHub](https://github.com/tomkat-cr/lakehouses-101-pycon2024).
+For more information or to contribute to the project, visit [Data Lakehouse Local Stack on GitHub](https://github.com/tomkat-cr/data_lakehouse_local_stack).
 
 Happy Coding!

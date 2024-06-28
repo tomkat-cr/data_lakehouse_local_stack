@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE_PATH="/home/PyCon2024/Project"
+BASE_PATH="/home/LocalLakeHouse/Project"
 
 DATA_SUBDIR="$1"
 if [ -z "${DATA_SUBDIR}" ]; then

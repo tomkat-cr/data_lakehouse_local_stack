@@ -50,6 +50,8 @@ DEFAULT_SQL = "SELECT " + \
 
 
 def get_config(show_params: bool = True) -> dict:
+
+    print("")
     print("Loading environment variables...")
 
     env_files = ['processing.env', 'minio.env']
@@ -70,7 +72,7 @@ def get_config(show_params: bool = True) -> dict:
 
     # Root directory path
     config["base_path"] = os.getenv('BASE_PATH')
-    # config["base_path"] = os.getenv('BASE_PATH', "/home/PyCon2024/Project")
+    # config["base_path"] = os.getenv('BASE_PATH', "/home/LocalLakeHouse/Project")
 
     if not config["base_path"]:
         print("Error: BASE_PATH environment variable is not set.")
@@ -205,13 +207,12 @@ def get_config(show_params: bool = True) -> dict:
         print("Dataframe input header:", config["df_input_header"])
         print("")
 
-        mode = os.environ.get('MODE', None)
-        # sql = os.environ.get('SQL', None)
-        ingest_from = os.environ.get('FROM', "")
-        if mode:
-            print("Mode:", mode)
-        if ingest_from:
-            print("Ingest from:", ingest_from)
+        config["mode"] = os.environ.get('MODE', None)
+        config["resume_from"] = os.environ.get('FROM', "")
+        if config["mode"]:
+            print("Mode:", config["mode"])
+        if config["resume_from"]:
+            print("Ingest from:", config["resume_from"])
 
     return config
 
@@ -369,7 +370,7 @@ def list_files_minio(config: dict, resume_from: int) -> list:
 ########################
 
 # Init Minio
-# sh /home/PyCon2024/Project/Scripts/1.init_minio.sh data/raygun
+# sh /home/LocalLakeHouse/Project/Scripts/1.init_minio.sh data/raygun
 
 # Install necessary packages
 # !{sys.executable} -m pip install pyspark
@@ -381,7 +382,7 @@ def list_files_minio(config: dict, resume_from: int) -> list:
 # Install dotenv to load environment variables
 # !{sys.executable} -m pip install python-dotenv
 
-def ingest(resume_from: int = -1):
+def ingest():
 
     ########################
     # Step 1.2: Read .env file
@@ -419,6 +420,17 @@ def ingest(resume_from: int = -1):
         print("")
         print(">> Checking spark configuration...")
         pprint.pprint(spark.sparkContext.getConf().getAll())
+
+    # Verify resuming options
+    resume_from = config["resume_from"]
+    if config["mode"] == "resume":
+        resume_from = hive_verification(spark)
+    if not resume_from:
+        # Process from scratch
+        resume_from = -1
+    else:
+        # Resume from file number
+        resume_from = int(resume_from)
 
     ########################
     # Step 1.4: Upload Multiple JSON Files to MinIO
@@ -651,6 +663,41 @@ def ingest(resume_from: int = -1):
     hive_process(df, start_time)
 
     return True
+
+
+def hive_verification(spark: SparkSession.Builder = None):
+
+    # Load environment variables
+    config = get_config()
+    if not config:
+        return False
+
+    # Start the timer
+    print("")
+    print("********************************************")
+    print("*** HIVE Process pre-verification begins ***")
+    print("********************************************")
+    start_time = show_curr_datetime()
+
+    # Initialize Spark session
+    if not spark:
+        spark = get_spark_session(config)
+        if not spark:
+            return False
+
+    print("Calculating processed rows...")
+    df = spark.read.load(config["df_output_s3_path"])
+    if config["desired_alias"]:
+        rows_count = df.select(config["desired_alias"]).count()
+    else:
+        rows_count = df.select("*").count()
+    print("")
+    print("Processed rows until now:")
+    print(rows_count)
+    print("")
+
+    show_curr_datetime(start_time)
+    return rows_count
 
 
 def hive_process(df: DataFrame = None, start_time: float = None):
@@ -1017,13 +1064,8 @@ if __name__ == "__main__":
     # mode = sys.argv[1] if len(sys.argv) > 1 else None
     mode = os.environ.get('MODE', None)
     sql = os.environ.get('SQL', None)
-    ingest_from = os.environ.get('FROM', "")
-    if not ingest_from:
-        ingest_from = -1
-    else:
-        ingest_from = int(ingest_from)
-    if mode == "ingest":
-        if ingest(ingest_from):
+    if mode == "ingest" or mode == "resume":
+        if ingest():
             get_spark_query(sql)
     elif mode == "spark_sql":
         get_spark_query(sql)
@@ -1031,18 +1073,26 @@ if __name__ == "__main__":
         get_trino_query(sql)
     elif mode == "hive_process":
         hive_process()
+    elif mode == "hive_verification":
+        hive_verification()
     elif mode == "spark_content":
         get_spark_content()
     else:
         print("")
         print("Invalid mode parameter.")
-        print("Available options: ingest, hive_process, spark_sql, trino_sql")
+        print("Available options: ingest, resume, hive_process, " +
+              "hive_verification, spark_sql, trino_sql")
         print("E.g.")
         print("To execute the complete ingestion process:")
         print("  MODE=ingest make raygun_ip_processing")
+        print("To resume the ingestion from the last file processed")
+        print("  MODE=resume make raygun_ip_processing")
         print("To resume the ingestion process from the file number: 70000")
         print("  MODE=ingest FROM=70000 make raygun_ip_processing")
-        print("To execute the hive tables population process" +
+        print("To check how many files has been processed iin the Dataframe" +
+              " (before the Hive tables population):")
+        print("  MODE=hive_verification make raygun_ip_processing")
+        print("To execute the Hive tables population process" +
               " (after a stopped ingestion):")
         print("  MODE=hive_process make raygun_ip_processing")
         print("To get the ingestion results using the default SQL query" +
