@@ -695,7 +695,7 @@ def ingest():
     show_curr_datetime(init_ts)
 
     # Finish the process by creating the Hive metastore
-    hive_process(spark, df, start_time)
+    hive_process(spark, None, start_time)
 
     close_spark_session(spark)
 
@@ -758,7 +758,8 @@ def hive_process(spark: SparkSession.Builder = None, df: DataFrame = None,
     print("***************************")
     print("*** HIVE Process begins ***")
     print("***************************")
-    start_time = show_curr_datetime()
+    if not start_time:
+        start_time = show_curr_datetime()
 
     ########################
     # Step 1.3: Setup spark
@@ -873,8 +874,6 @@ def hive_process(spark: SparkSession.Builder = None, df: DataFrame = None,
     print("")
     print(">> Flattened data frame schema structure...")
     print("")
-
-    print("Flattened dataframe schema structure:")
     df_flattened.printSchema()
 
     # Show flattened data frame content
@@ -899,6 +898,7 @@ def hive_process(spark: SparkSession.Builder = None, df: DataFrame = None,
     print("Recursively delete a directory tree...")
     shutil.rmtree(config['hive_dest'], ignore_errors=True)
 
+    # Adjust the number of partitions as necessary
     df_flattened = df_flattened.repartition(config["df_num_partitions"])
 
     # from pyspark.sql.functions \
@@ -922,17 +922,8 @@ def hive_process(spark: SparkSession.Builder = None, df: DataFrame = None,
 
     # Save the processed data into Hive table
 
-    # # Adjust the number of partitions as necessary in
-    # # .repartition(config["df_num_partitions"])
-    #
-    # df_flattened \
-    #     .repartition(config["df_num_partitions"]) \
-    #     .write \
-    #     .mode("overwrite") \
-    #     .saveAsTable("raygun_error_traces")
-
     # Write in batches
-    print(f"Splits data into {config['hive_batches']} batches")
+    print(f"Split data processing into {config['hive_batches']} batches")
     print("Starting write in batches...")
     init_ts = show_curr_datetime()
     j = 0
@@ -948,8 +939,12 @@ def hive_process(spark: SparkSession.Builder = None, df: DataFrame = None,
     print(">> Verifying the data is saved correctly...")
     print("   (showing only first 10 rows)")
     print("")
-
     spark.sql("SELECT * FROM raygun_error_traces LIMIT 10") \
+        .show(truncate=False)
+
+    print("Rows count")
+    print("")
+    spark.sql("SELECT count(*) FROM raygun_error_traces") \
         .show(truncate=False)
 
     # Stop the timer
