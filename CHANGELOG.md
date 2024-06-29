@@ -17,6 +17,42 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ### Breaks
 
 
+## 0.0.7 (2024-06-29)
+---
+
+### New
+Add DatalakeHouse Components by Cloud image to README.
+Add S3_PROTOCOL environment variable to configure s3 / s3a.
+
+### Changes
+get_datetime() used to add timestamps on each ingestion bath process.
+close_spark_session() added to each process that start a spark session builder.
+
+
+## 0.0.6 (2024-06-28)
+---
+
+### New
+Automatic resume using MODE=resume.
+"hive_verification" process to check how many files has been processed iin the Dataframe (before the Hive tables population).
+
+### Changes
+/home/PyCon2024 directory renamed to /home/LocalLakeHouse.
+raygun_ip_processing.py renamed to main.py, for future AWS EMR implementation.
+Include the data lakehouse layers description in README.
+Calculate the exact starting file in list_files_minio().
+
+
+## 0.0.5 (2024-06-26)
+---
+
+### New
+Add resume options.
+Open 4040 port to run pyspark web UI with `docker exec -ti spark pyspark` in the docker-composer configuration.
+Add `make open_pyspark_ui` option.
+Add instructions to preare data and run the raygun ingestion process.
+
+
 ## 0.0.4 (2024-06-25)
 ---
 

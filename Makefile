@@ -24,5 +24,11 @@ open_local_jupiter:
 open_local_minio:
 	open http://127.0.0.1:9001
 
+open_local_trino:
+	open http://127.0.0.1:8081
+
+open_pyspark_ui:
+	docker exec -ti spark pyspark
+
 raygun_ip_processing:
 	bash batch_processing/010_raygun_ip_processing.sh

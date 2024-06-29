@@ -1,18 +1,20 @@
-# Data Lakehouse local stack
+# Data Lakehouse Local Stack
 
 **Data Lakehouse local stack with PySpark, Trino, and Minio**
 
-This repository aims to introduce the Data Lakehouse pattern as a suitable and flexible solution to transit small companies to established enterprises, allowing to implement a local Data Lakehouse from OpenSource solutions, compatible with Cloud production grade tools.
+This repository aims to introduce the Data Lakehouse pattern as a suitable and flexible solution to transit small companies to established enterprises, allowing to implement a local data lakehouse from OpenSource solutions, compatible with Cloud production grade tools.
+
+It also includes an example to process Raygun error data and the IP address occurrence.
 
 ## Introduction
 
 In the world of ML and AI, **data** is the crown jewel, but it's normally lost in [Swamps](https://www.superannotate.com/blog/data-lakes-vs-data-swamps-vs-data-warehouse) due to bad practices with **Data Lakes** when companies try to productionize their data.
 
-**Data Warehouses** are costly solutions for this problem, and increase the complexity of simple Lakes.
+**Data Warehouses** are costly solutions for this problem, and increase the complexity of simple Data Lakes.
 
 Here's where **Data Lakehouses** come into action, being a hybrid solution with the best of both worlds. ([source](https://2024.pycon.co/en/talks/23)).
 
-**Data Lakehouses** aim to combine elements of data warehousing with core elements of the data lake. Put simply, they are designed to provide the lower costs of cloud storage even for large amounts of raw data alongside support for certain analytics concepts – such as SQL access to curated and structured data tables stored in relational databases, or support for large scale processing of Big Data analytics or machine learning workloads ([source](https://www.exasol.com/resource/data-lake-warehouse-or-lakehouse/)).
+**Data Lakehouses** aim to combine elements of data warehousing with core elements of data lakes. Put simply, they are designed to provide the lower costs of cloud storage even for large amounts of raw data alongside support for certain analytics concepts – such as SQL access to curated and structured data tables stored in relational databases, or support for large scale processing of Big Data analytics or Machine Learning workloads ([source](https://www.exasol.com/resource/data-lake-warehouse-or-lakehouse/)).
 
 <!--
 ![Common DatalakeHouse technologies](./images/1676637608474.png)<BR/>
@@ -35,7 +37,7 @@ A medallion architecture is a data design pattern used to logically organize dat
 
 * Gold: feature/aggregated data store.
 
-* Platinum (optional): in a faster format like a high-speed DBMS, because `gold` is stored in cloud bucket storage (like AWS S3(), and it's slow for e.g. real-time dashboard.
+* Platinum (optional): in a faster format like a high-speed DBMS, because `gold` is stored in cloud bucket storage (like AWS S3), and it's slow for e.g. real-time dashboard.
 
 Readings:
 
@@ -43,41 +45,98 @@ Readings:
 * https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion
 * https://medium.com/@junshan0/medallion-architecture-what-why-and-how-ce07421ef06f
 
-## Data Lakehouse Components
+## Data Lakehouse Layers
 
+<!--
+![DatalakeHouse components](./images/Data_Lakehouse_framework_and_process_flow.jpg)<BR/>
+([Image source](https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics))
+-->
+![DatalakeHouse components](./images/Data_Lakehouse_framework_and_process_flow_AWS.jpg)<BR/>
+([Image source](https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/))
+
+Storing structured and unstructured data in a data lakehouse presents many benefits to a data organization, namely making it easier and more seamless to support both business intelligence and data science workloads. This starts at the data source.
+
+We describe the five layers in this section, but let’s first talk about the sources that feed the Lake House Architecture.
+
+### Data sources
+
+The Lake House Architecture enables you to ingest and analyze data from a variety of sources. Many of these sources such as line of business (LOB) applications, ERP applications, and CRM applications generate highly structured batches of data at fixed intervals. In addition to internal structured sources, you can receive data from modern sources such as web applications, mobile devices, sensors, video streams, and social media. These modern sources typically generate semi-structured and unstructured data, often as continuous streams.
+
+### Data ingestion layer
+
+The ingestion layer is responsible for ingesting data into the Lake House storage layer. It provides the ability to connect to internal and external data sources over a variety of protocols. It can ingest and deliver batch as well as real-time streaming data into a data warehouse as well as data lake components of the Lake House storage layer.
+
+### Data storage layer
+
+The data storage layer is responsible for providing durable, scalable, and cost-effective components to store and manage vast quantities of data. In a Lake House Architecture, the data warehouse and data lake natively integrate to provide an integrated cost-effective storage layer that supports unstructured as well as highly structured and modeled data. The storage layer can store data in different states of consumption readiness, including raw, trusted-conformed, enriched, and modeled.
+
+### Catalog layer
+
+The catalog layer is responsible for storing business and technical metadata about datasets hosted in the Lake House storage layer. In a Lake House Architecture, the catalog is shared by both the data lake and data warehouse, and enables writing queries that incorporate data stored in the data lake as well as the data warehouse in the same SQL. It allows you to track versioned schemas and granular partitioning information of datasets. As the number of datasets grows, this layer makes datasets in the Lake House discoverable by providing search capabilities.
+
+### Processing layer
+
+Components in the processing layer are responsible for transforming data into a consumable state through data validation, cleanup, normalization, transformation, and enrichment. The processing layer provides purpose-built components to perform a variety of transformations, including data warehouse style SQL, big data processing, and near-real-time ETL.
+
+The processing layer provides the quickest time to market by providing purpose-built components that match the right dataset characteristics (size, format, schema, speed), processing task at hand, and available skillsets (SQL, Spark). The processing layer can cost-effectively scale to handle large data volumes and provide components to support schema-on-write, schema-on-read, partitioned datasets, and diverse data formats. The processing layer can access the unified Lake House storage interfaces and common catalog, thereby accessing all the data and metadata in the Lake House. This has the following benefits:
+
+Avoids data redundancies, unnecessary data movement, and duplication of ETL code that may result when dealing with a data lake and data warehouse separately
+Reduces time to market.
+
+### Data consumption layer
+
+The data consumption layer is responsible for providing scalable and performant components that use unified Lake House interfaces to access all the data stored in Lake House storage and all the metadata stored in the Lake House catalog. It democratizes analytics to enable all personas across an organization by providing purpose-built components that enable analysis methods, including interactive SQL queries, warehouse style analytics, BI dashboards, and ML.
+
+Sources:
+* [https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/](https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/)
+* [https://www.montecarlodata.com/blog-data-lakehouse-architecture-5-layers/](https://www.montecarlodata.com/blog-data-lakehouse-architecture-5-layers/)
+* [https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics](https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics)
+
+## Data LakeHouse Components by Cloud Providers
+
+![DatalakeHouse Components by Cloud](./images/7316_cloud-data-lakehouse-success-story.002.png)<BR/>
+([Image source](https://www.mssqltips.com/sqlservertip/7316/cloud-data-lakehouse-success-story-architecture-outcomes-lessons-learned/))
+
+## Local Data Lakehouse Components
+
+<!--
 ![DatalakeHouse components](./images/1_xuE8_N_LxoP49S1Pu5Wn5A.webp)<BR/>
 ([Image source](https://medium.com/adfolks/data-lakehouse-paradigm-of-decade-caa286f5b7a1))
 
-<!--
 ![Common DatalakeHouse technologies](./images/Data_Lake_vs_Data_Warehouse.webp)<BR/>
 ([Image source](https://www.montecarlodata.com/blog-data-lake-vs-data-warehouse))
 -->
+![Common DatalakeHouse technologies](./images/Data_lakehouse_local_components.CR.svg)
 
-* **Apache Spark**<BR/>
-  Processing Layer.<BR/>
-  [https://spark.apache.org](https://spark.apache.org)<BR/>
-  [https://spark.apache.org/docs/latest/api/python/index.html](https://spark.apache.org/docs/latest/api/python/index.html)<BR/>
+Components used on each Layer:
 
 * **Minio**<BR/>
-  Landing buckets and data storage layer.<BR/>
+  Data sources, storage layer, landing buckets.<BR/>
   [https://min.io](https://min.io)
 
+* **Apache Spark**<BR/>
+  Processing layer, compute.<BR/>
+  [https://spark.apache.org](https://spark.apache.org)<BR/>
+  [https://spark.apache.org/docs/latest/api/python/index.html](https://spark.apache.org/docs/latest/api/python/index.html)<BR/>
+[https://sparkbyexamples.com/pyspark-tutorial/](https://sparkbyexamples.com/pyspark-tutorial/)<BR/>
+
 * **Apache Hive**<BR/>
-  Data catalog.<BR/>
+  Data catalog, catalog layer, metadata.<BR/>
   [https://hive.apache.org](https://hive.apache.org)
 
 * **Postgres Database**<BR/>
   Data catalog persistence.<BR/>
   [https://www.postgresql.org](https://www.postgresql.org)
 
-* **Delta Lake** (open table format)<BR/>
-  [https://delta.io](https://delta.io)<BR/>
-  Open source framework developed by Databricks. Like other modern table formats, it employs file-level listings, improving the speed of queries considerably compared to the  directory-level listing of Hive. Offers enhanced CRUD operations, including the ability to update and delete records in a data lake which would previously have been immutable.<BR/>
-  (Click [here](https://www.starburst.io/data-glossary/open-table-formats/) for more information about Open Table Formats).<BR/>
-
 * **Trino**<BR/>
   Query engine and data governance.<BR/>
   [https://trino.io](https://trino.io)
+
+* **Delta Lake**<BR/>
+  Open table format.<BR/>
+  [https://delta.io](https://delta.io)<BR/>
+  Open source framework developed by Databricks. Like other modern table formats, it employs file-level listings, improving the speed of queries considerably compared to the  directory-level listing of Hive. Offers enhanced CRUD operations, including the ability to update and delete records in a data lake which would previously have been immutable.<BR/>
+  (Click [here](https://www.starburst.io/data-glossary/open-table-formats/) for more information about Open Table Formats).<BR/>
 
 ## Other Components
 
@@ -102,8 +161,8 @@ Readings:
 Clone the respository:
 
 ```bash
-git clone https://github.com/tomkat-cr/lakehouses-101-pycon2024.git
-cd lakehouses-101-pycon2024
+git clone https://github.com/tomkat-cr/data_lakehouse_local_stack.git
+cd data_lakehouse_local_stack
 ```
 
 Download the required packages:
@@ -114,7 +173,7 @@ make install
 
 **IMPORTANT**: this process will take a long time, depending on your Internet connection speed.
 
-Start the local stack:
+Start the local stack (or `spark stack`):
 
 ```bash
 make run
@@ -132,9 +191,100 @@ Run the local Minio explorer:
 make open_local_minio
 ```
 
-## Large number of input data files
+## Raygun Data Processing
 
-If you have more than 1000 raw data files, you can use the following command to mount the direcotry in the local stack `data` directory:
+To process a single Raygun error you need to download the Raygun data, composed by a series of JSON files for each time  the error happend with all data shown in Raygun, upload the data to S3 (managed locally by Minio), ingest the data using Spark, build the Hive metastore and finally run the SQL queries to get the data analytics.
+
+### Raygun Data Preparation
+
+1. Go to Raygun ([https://app.raygun.com](https://app.raygun.com)), and select the corresponding Application.
+
+2. Put the check mark in the error you want to analyze.
+
+3. Click on the `Export selected groups` button.
+
+4. Click on the `Add to export list` button.
+
+5. A message like this will be shown:
+
+```
+Great work! Those error groups have been added to the export list.
+View your exports by clicking here, or by using the "Export" link under "Crash Reporting" in the sidebar.
+```
+
+6. Under `Crash Reporting` in the sidebar, click on the `Export` link.
+
+7. Click on the `Start export` button.
+
+```
+Confirm export
+
+Export all errors between XXXX and YYYY.
+
+Exports can take some time depending on the volume of errors being exported. You will be notified when your export is ready to be downloaded. Once an export is started, another cannot begin until the first has completed.
+
+Exports are generated as a single compressed file. [Learn how to extract them](https://raygun.com/documentation/product-guides/crash-reporting/exporting-data/)
+
+Recipients:
+example@address.com
+```
+
+8. Click on the `Start export` button.
+
+9. Wait until the compressed file arraives to your email inbox.
+
+10. A message arrives to your inbox like this:
+
+```
+Subject: Your Raygun Crash Reporting export is complete for "XXXX"
+
+Your error export has been generated
+We have completed the error group export for your application "XXXX". You can now download it below.
+Download export - XXX MB
+Learn how to extract 7z files
+```
+
+11. Click on the `Download export - XXX MB` link.
+
+12. Put the compressed file in a local directory like: `${HOME}/Downloads/raygun-data`
+
+13. Uncompress the file.
+
+14. A new directory will be created with the JSON files, each one with a error for a date/time, in the directory: `${HOME}/Downloads/raygun-data/assets`
+
+15. To check the input files size:
+
+Set an environment variable with the path:
+
+```sh
+ORIGINAL_JSON_FILES_PATH="${HOME}/Downloads/raygun-data/assets"
+```
+
+Get the total size for all files downloaded:
+
+```sh
+du -sh ${ORIGINAL_JSON_FILES_PATH}
+```
+
+Count the number of files in that directory:
+
+```sh
+ls -l ${ORIGINAL_JSON_FILES_PATH} | wc -l
+```
+
+16. Move the files to the `data/raygun` directory in the Project, or perform the `Large number of input data files` procedure (se next section) to link the `${HOME}/Downloads/raygun-data/assets` to the `data/raygun` directory.
+
+### Large number of input data files
+
+If you have more than 1000 raw data input files, you can use the following procedure to mount the input files directory in the local stack `data` directory:
+
+1. Edit the docker-compose configuration file in the project's root:
+
+```sh
+vi ./docker-compose.yml
+```
+
+2. Add the `data/any_directory_name` input files directory in the `volumnes` section, changing `any_directory_name` with the name of yours, e.g. `raygun`:
 
 File: `./docker-compose.yml`
 
@@ -145,26 +295,252 @@ services:
       .
       .
     volumes:
-      - /path/to/input/directory/:/home/PyCon2024/Project/data/any_directory_name
+      - /path/to/input/directory/:/home/LocalLakeHouse/Project/data/any_directory_name
 ```
 
 So your massive input files will be under the `data/any_directory_name` directory.
 
-You can also do it by a symbolic link:
+3. You can also do it by a symbolic link:
 
 ```sh
 ln -s /path/to/input/directory/ data/any_directory_name
 ```
 
-To destroy the link:
+4. Once you finish the ingestion process (see `Raygun Data Ingestion` section), the link can be removed:
+
+Exit the `spark` docker container pressing Ctrl-D (or running the `exit` command), and run:
 
 ```sh
 unlink data/any_directory_name
 ```
 
-## Data preparation
+### Raygun Data Copy to S3 / Minio
 
-Decompress the example data files for the Pockemon Data Ingestion:
+4. In a terminal window, restart the `spark stack`:
+
+If the local stack is already running, press Ctrl-C to stop it.
+
+Run this command:
+
+```sh
+make run
+```
+
+The spark stak docker container will have a `/home/LocalLakeHouse/Project` directory that's the Project's root directory in your local computer.
+
+5. Open a second terminal window and enter to the `spark` docker container:
+
+```sh
+docker exec -ti spark bash
+```
+
+6. Then run the load script:
+
+```sh
+cd /home/LocalLakeHouse/Project
+sh ./Scripts/1.init_minio.sh data/raygun
+```
+
+### Raygun Data Ingestion
+
+1. Run the ingest process:
+
+Open a terminal window and enter to the `spark` docker container:
+
+```sh
+docker exec -ti spark bash
+```
+
+Run the injestion process from scratch:
+
+```sh
+cd Project
+MODE=ingest make raygun_ip_processing
+```
+
+When the ingestion process ends, the `Build the Hive Metastore` and `Raygun Data Reporting` will run as well.
+
+
+2. If the process stops, copy the counter XXXX after the last `Persisting...` message:
+
+For example:
+
+```
+Persisting DataFrame to disk (round X)...
+3) From: XXXX | To: YYYY
+```
+
+Then run:
+
+```sh
+MODE=ingest FROM=XXXX make raygun_ip_processing
+```
+
+### Build the Hive Metastore
+
+If the igestion process stops and you don't want to resume/finish it, you can run the Hive metastore building, and be able to run the SQL queries and build the reports:
+
+```sh
+MODE=hive_process make raygun_ip_processing
+```
+
+### Raygun Data Reporting
+
+1. To run the default SQL query using Spark:
+
+```sh
+MODE=spark_sql make raygun_ip_processing
+```
+
+This process generates a report in the Project's `Outputs/raygun_ip_addresses_summary` directory, where you will find a `part-00000-<some-headecimal-code>.csv` file with the results.
+
+The default SQL query that generates the results file is:
+
+```sql
+SELECT RequestIpAddress, COUNT(*) AS IpCount
+  FROM raygun_error_traces
+  GROUP BY RequestIpAddress
+  ORDER BY IpCount DESC
+```
+
+The result will be the list of IP addresses and number of times those IPs are in all the Requests evaluated.
+
+2. To run a custom SQL query using Spark:
+
+```sh
+SQL='SELECT RequestIpAddress FROM raygun_error_traces GROUP BY RequestIpAddress' MODE=spark_sql make raygun_ip_processing
+```
+
+3. To run the default SQL query using Trino:
+
+```sh
+MODE=trino_sql make raygun_ip_processing
+```
+
+### Ingest process stats
+
+1. To check the Dataframe cluster S3 (Minio) files:
+
+This way you can do the ingestion process follow-up, because during the dataframe build step in in the ingest process, files are processed in batchs (groups of 5,000 files) and each time a batch finises, the result is written to the S3 cluster directory. If the ingestion process stops, it can be resumed from the ending point of last executed batch, and the processed files will be appended to the S3 cluster directory.
+
+Set an environment variable with the path:
+
+```sh
+CLUSTER_DIRECTORY="/home/LocalLakeHouse/Project/Storage/minio/data-lakehouse/ClusterData/RaygunIpSummary"
+```
+
+The parquet files resulting from the dataframe build part in the ingestion process. are in the path assigned to `CLUSTER_DIRECTORY`.
+
+Get the total size for all files currently processed in the Dataframe:
+
+```sh
+du -sh ${CLUSTER_DIRECTORY}
+```
+
+Count the number of files in that directory:
+
+```sh
+ls -l ${CLUSTER_DIRECTORY} | wc -l
+```
+
+2. To check the raw input JSON files uploaded to S3 (Minio):
+
+Set an environment variable with the path:
+
+```sh
+S3_JSON_FILES_PATH="/home/LocalLakeHouse/Project/Storage/minio/data-lakehouse/Raw/raygun"
+```
+
+Get the total size for all files:
+
+```sh
+du -sh ${S3_JSON_FILES_PATH}
+```
+
+Count the number of files in that directory:
+
+```sh
+ls -l ${S3_JSON_FILES_PATH} | wc -l
+```
+
+## Minio UI
+
+1. Run the local Minio explorer:
+
+```bash
+make open_local_minio
+```
+
+2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:9001](http://127.0.0.1:9001)
+
+3. The credentials for the login are in the `minio.env` file:<BR/>
+   Username (`MINIO_ACCESS_KEY`): minio_ak<BR/>
+   Password (`MINIO_SECRET_KEY`): minio_sk<BR/>
+
+## Monitor Spark processes
+
+To access the `pyspark` web UI:
+
+1. Run the following command in a terminal window:
+
+```sh
+make open_pyspark_ui
+```
+
+It runs the following command:
+
+```sh
+docker exec -ti spark pyspark
+```
+
+2. Go this URL in a Browser: [http://127.0.0.1:4040](http://127.0.0.1:4040)
+
+## Run the local Jupiter Notebooks
+
+1. Run the local Jupiter engine:
+
+```bash
+make open_local_jupiter
+```
+
+2. Automatically this URL will be opened in a Browser: [http://127.0.0.1:8888/lab](http://127.0.0.1:8888/lab)
+
+3. A screen will appear asking for the  `Password or token` to authenticate.<BR/>
+   It can be found in the  `docker attach` screen (the one that stays running when you execute `make run` to start the `spark stack`).
+
+3. Seach for a message like this:<BR/>
+    `http://127.0.0.1:8888/lab?token=xxxx`
+
+4. The `xxxx` is the `Password or token` to authenticate.
+
+## Connect to the Jupiter Server in VSC
+
+To connect the Jupiter Server in VSC (Visual Studio Code):
+
+1. In the docker attach screen, look for a message like this:<BR/>
+    `http://127.0.0.1:8888/lab?token=xxxx`
+
+2. The `xxxx` is the password to be used when the Jupyter Kernel Connection ask for it...
+
+2. Then select the `Existing Jupiter Server` option.
+
+3. Specify the URL: `http://127.0.0.1:8888`
+
+4. Specify the password copied in seconf step: `xxxx`
+
+5. Select the desired Kernel from the list
+
+The VSC will be connected to the Jupiter Server.
+
+## Pokemon Data preparation
+
+To prepare the data for the Pockemon Data Ingestion:
+
+1. Download the compressed files from: [https://github.com/alejogm0520/lakehouses-101-pycon2024/tree/main/data](https://github.com/alejogm0520/lakehouses-101-pycon2024/tree/main/data)
+
+2. Copy those files to the `data` directory.
+
+3. Decompress the example data files:
 
 ```bash
 cd data
@@ -175,8 +551,9 @@ unzip types.zip
 
 ### Jupiter notebooks
 
-* [Pockemon data ingestion](notebooks/Pokemon-data-ingestion.ipynb)
 * [Raygun data ingestion](notebooks/Raygun-data-ingestion.ipynb)
+
+* [Pockemon data ingestion](notebooks/Pokemon-data-ingestion.ipynb)
 
 ## License
 
@@ -188,6 +565,6 @@ This project is maintained by [Carlos J. Ramirez](https://www.carlosjramirez.com
 
 It was forked from the [Data Lakehouse 101](https://github.com/alejogm0520/lakehouses-101-pycon2024) repository made by [Alejandro Gómez Montoya](https://github.com/alejogm0520).
 
-For more information or to contribute to the project, visit [Data Lakehouse 101 on GitHub](https://github.com/tomkat-cr/lakehouses-101-pycon2024).
+For more information or to contribute to the project, visit [Data Lakehouse Local Stack on GitHub](https://github.com/tomkat-cr/data_lakehouse_local_stack).
 
 Happy Coding!

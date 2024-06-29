@@ -1,7 +1,7 @@
 FROM debian:bookworm-slim
 
-RUN mkdir /home/PyCon2024
-WORKDIR /home/PyCon2024
+RUN mkdir /home/LocalLakeHouse
+WORKDIR /home/LocalLakeHouse
 
 RUN apt-get clean all
 RUN apt-get update
@@ -21,7 +21,7 @@ RUN apt-get install cron -y
 # Install Python
 RUN apt-get update
 RUN apt-get install python3  python3-full python3-dev python3-pip zip -y
-RUN python3 -m venv /home/PyCon2024/venv
+RUN python3 -m venv /home/LocalLakeHouse/venv
 
 RUN apt-get install -y --no-install-recommends openjdk-17-jre
 # TODO: Review JAVA_HOME
@@ -39,13 +39,13 @@ ENV SPARK_OPTS="--driver-java-options=-Xms1024M --driver-java-options=-Xmx4096M 
 RUN mkdir -p /tmp/spark-events
 COPY config/spark/spark-defaults.conf $SPARK_HOME/conf/
 
-ADD requirements.txt /home/PyCon2024/requirements.txt
-RUN /home/PyCon2024/venv/bin/pip3 install -r /home/PyCon2024/requirements.txt
+ADD requirements.txt /home/LocalLakeHouse/requirements.txt
+RUN /home/LocalLakeHouse/venv/bin/pip3 install -r /home/LocalLakeHouse/requirements.txt
 
-ADD config/docker/entrypoint.sh /home/PyCon2024/entrypoint.sh
-RUN chmod +x /home/PyCon2024/entrypoint.sh
+ADD config/docker/entrypoint.sh /home/LocalLakeHouse/entrypoint.sh
+RUN chmod +x /home/LocalLakeHouse/entrypoint.sh
 
-ENTRYPOINT ["/home/PyCon2024/entrypoint.sh"]
+ENTRYPOINT ["/home/LocalLakeHouse/entrypoint.sh"]
 
 
 

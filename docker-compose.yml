@@ -8,13 +8,15 @@ services:
     build:
       context: .
     volumes:
-      - ./:/home/PyCon2024/Project
+      - ./:/home/LocalLakeHouse/Project
       - ./Storage/hive:/opt/hive/data/warehouse
     ports:
       - '8888:8888'
+      # To activate 4040, run: docker exec -ti spark pyspark
+      - '4040:4040'
     env_file:
       - 'minio.env'
-    entrypoint: bash /home/PyCon2024/entrypoint.sh
+    entrypoint: bash /home/LocalLakeHouse/entrypoint.sh
     networks:
       - lakehouse-network
 

@@ -1,0 +1,377 @@
+{
+    "Error": {
+      "Message": "Aws\\DynamoDb\\Exception\\DynamoDbException: Error executing \"UpdateItem\" on \"https://dynamodb.us-east-1.amazonaws.com\"; AWS HTTP error: Client error: `POST https://dynamodb.us-east-1.amazonaws.com` resulted in a `400 Bad Request` response:\n{\"__type\":\"com.amazon.coral.validate#ValidationException\",\"message\":\"Item size to update has exceeded the maximum allowe (truncated...)\n ValidationException (client): Item size to update has exceeded the maximum allowed size - {\"__type\":\"com.amazon.coral.validate#ValidationException\",\"message\":\"Item size to update has exceeded the maximum allowed size\"}",
+      "ClassName": "Aws\\DynamoDb\\Exception\\DynamoDbException",
+      "StackTrace": [
+        {
+          "LineNumber": 97,
+          "ClassName": "Aws\\WrappedHttpHandler",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/aws/aws-sdk-php/src/WrappedHttpHandler.php",
+          "MethodName": "parseError"
+        },
+        {
+          "LineNumber": 204,
+          "ClassName": "Aws\\WrappedHttpHandler",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "Aws\\{closure}"
+        },
+        {
+          "LineNumber": 169,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "callHandler"
+        },
+        {
+          "LineNumber": 42,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/RejectedPromise.php",
+          "MethodName": "GuzzleHttp\\Promise\\{closure}"
+        },
+        {
+          "LineNumber": 48,
+          "ClassName": "GuzzleHttp\\Promise\\RejectedPromise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/TaskQueue.php",
+          "MethodName": "GuzzleHttp\\Promise\\{closure}"
+        },
+        {
+          "LineNumber": 158,
+          "ClassName": "GuzzleHttp\\Promise\\TaskQueue",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/guzzle/src/Handler/CurlMultiHandler.php",
+          "MethodName": "run"
+        },
+        {
+          "LineNumber": 183,
+          "ClassName": "GuzzleHttp\\Handler\\CurlMultiHandler",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/guzzle/src/Handler/CurlMultiHandler.php",
+          "MethodName": "tick"
+        },
+        {
+          "LineNumber": 248,
+          "ClassName": "GuzzleHttp\\Handler\\CurlMultiHandler",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "execute"
+        },
+        {
+          "LineNumber": 224,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "invokeWaitFn"
+        },
+        {
+          "LineNumber": 269,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "waitIfPending"
+        },
+        {
+          "LineNumber": 226,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "invokeWaitList"
+        },
+        {
+          "LineNumber": 269,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "waitIfPending"
+        },
+        {
+          "LineNumber": 226,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "invokeWaitList"
+        },
+        {
+          "LineNumber": 62,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+          "MethodName": "waitIfPending"
+        },
+        {
+          "LineNumber": 58,
+          "ClassName": "GuzzleHttp\\Promise\\Promise",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/aws/aws-sdk-php/src/AwsClientTrait.php",
+          "MethodName": "wait"
+        },
+        {
+          "LineNumber": 86,
+          "ClassName": "Aws\\AwsClient",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/aws/aws-sdk-php/src/AwsClientTrait.php",
+          "MethodName": "execute"
+        },
+        {
+          "LineNumber": 296,
+          "ClassName": "Aws\\AwsClient",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/src/prod/DynamoDb/DynamoConn.php",
+          "MethodName": "__call"
+        },
+        {
+          "LineNumber": 39,
+          "ClassName": "exampleapp\\prod\\DynamoDb\\DynamoDbConnector",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/src/prod/Ctrl/SaveDevCont.php",
+          "MethodName": "saveDatosPrivados"
+        },
+        {
+          "LineNumber": 74,
+          "ClassName": "exampleapp\\prod\\Ctrl\\SaveDevCont",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/exampleapp/s_p_frm/src/DispScort.php",
+          "MethodName": "run"
+        },
+        {
+          "LineNumber": 65,
+          "ClassName": "exampleapp\\DispScort",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/exampleapp/s_p_frm/src/DispScort.php",
+          "MethodName": "runCtrl"
+        },
+        {
+          "LineNumber": 138,
+          "ClassName": "exampleapp\\DispScort",
+          "FileName": "/var/www/prod.exampleapp.com/webroot/app/index.php",
+          "MethodName": "dispatch"
+        }
+      ],
+      "FileName": "WrappedHttpHandler.php",
+      "Data": null,
+      "InnerError": {
+        "Message": "GuzzleHttp\\Exception\\ClientException: Client error: `POST https://dynamodb.us-east-1.amazonaws.com` resulted in a `400 Bad Request` response:\n{\"__type\":\"com.amazon.coral.validate#ValidationException\",\"message\":\"Item size to update has exceeded the maximum allowe (truncated...)\n",
+        "ClassName": "GuzzleHttp\\Exception\\ClientException",
+        "StackTrace": [
+          {
+            "LineNumber": 69,
+            "ClassName": "GuzzleHttp\\Exception\\RequestException",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/guzzle/src/Middleware.php",
+            "MethodName": "prod"
+          },
+          {
+            "LineNumber": 204,
+            "ClassName": "GuzzleHttp\\Middleware",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "GuzzleHttp\\{closure}"
+          },
+          {
+            "LineNumber": 153,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "callHandler"
+          },
+          {
+            "LineNumber": 48,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/TaskQueue.php",
+            "MethodName": "GuzzleHttp\\Promise\\{closure}"
+          },
+          {
+            "LineNumber": 158,
+            "ClassName": "GuzzleHttp\\Promise\\TaskQueue",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/guzzle/src/Handler/CurlMultiHandler.php",
+            "MethodName": "run"
+          },
+          {
+            "LineNumber": 183,
+            "ClassName": "GuzzleHttp\\Handler\\CurlMultiHandler",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/guzzle/src/Handler/CurlMultiHandler.php",
+            "MethodName": "tick"
+          },
+          {
+            "LineNumber": 248,
+            "ClassName": "GuzzleHttp\\Handler\\CurlMultiHandler",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "execute"
+          },
+          {
+            "LineNumber": 224,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "invokeWaitFn"
+          },
+          {
+            "LineNumber": 269,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "waitIfPending"
+          },
+          {
+            "LineNumber": 226,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "invokeWaitList"
+          },
+          {
+            "LineNumber": 269,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "waitIfPending"
+          },
+          {
+            "LineNumber": 226,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "invokeWaitList"
+          },
+          {
+            "LineNumber": 62,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/guzzlehttp/promises/src/Promise.php",
+            "MethodName": "waitIfPending"
+          },
+          {
+            "LineNumber": 58,
+            "ClassName": "GuzzleHttp\\Promise\\Promise",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/aws/aws-sdk-php/src/AwsClientTrait.php",
+            "MethodName": "wait"
+          },
+          {
+            "LineNumber": 86,
+            "ClassName": "Aws\\AwsClient",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/aws/aws-sdk-php/src/AwsClientTrait.php",
+            "MethodName": "execute"
+          },
+          {
+            "LineNumber": 296,
+            "ClassName": "Aws\\AwsClient",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/src/prod/DynamoDb/DynamoDbConnector.php",
+            "MethodName": "__call"
+          },
+          {
+            "LineNumber": 39,
+            "ClassName": "exampleapp\\prod\\DynamoDb\\DynamoDbConnector",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/src/prod/Ctrl/SaveDevCont.php",
+            "MethodName": "saveDatosPrivados"
+          },
+          {
+            "LineNumber": 74,
+            "ClassName": "exampleapp\\prod\\Ctrl\\SaveDevCont",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/exampleapp/s_p_frm/src/DispScort.php",
+            "MethodName": "run"
+          },
+          {
+            "LineNumber": 65,
+            "ClassName": "exampleapp\\DispScort",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/vendor/exampleapp/s_p_frm/src/DispScort.php",
+            "MethodName": "runCtrl"
+          },
+          {
+            "LineNumber": 138,
+            "ClassName": "exampleapp\\DispScort",
+            "FileName": "/var/www/prod.exampleapp.com/webroot/app/index.php",
+            "MethodName": "dispatch"
+          }
+        ],
+        "FileName": "RequestException.php",
+        "Data": null,
+        "InnerError": null
+      }
+    },
+    "MachineName": "prod-other-prod-04577f5a0f4246382.exampleapp.com",
+    "Request": {
+      "HostName": "prod.exampleapp.com",
+      "Url": "/app/SaveUuid.js?par1=SOME-VALID-UUID4-PAR1&par2=SOME-VALID-UUID4-PAR2&methods=32&par3=SOME-VALID-UUID4-PAR3&par4=B91661E02CE7414190A115A1366DBEF9",
+      "HttpMethod": "GET",
+      "IpAddress": "174.231.133.8",
+      "QueryString": {
+        "par1": "SOME-VALID-UUID4-PAR1",
+        "par2": "SOME-VALID-UUID4-PAR2",
+        "methods": "32",
+        "par3": "SOME-VALID-UUID4-PAR3",
+        "par4": "B91661E02CE7414190A115A1366DBEF9"
+      },
+      "Headers": {
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://endpointid.altexampleapp.com/",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1",
+        "Sec-Fetch-Mode": "no-cors",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Sec-Fetch-Dest": "script",
+        "Sec-Fetch-Site": "cross-site",
+        "Accept": "*/*",
+        "X-Amzn-Trace-Id": "Root=1-65ed05b3-0513bc4dfa64b5fd2db178b7",
+        "Host": "prod.exampleapp.com",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https",
+        "X-Forwarded-For": "174.231.133.8",
+        "Content-Length": "",
+        "Content-Type": ""
+      },
+      "Data": {
+        "NSS_SDB_USE_CACHE": "1",
+        "USER": "exampleapp",
+        "HOME": "/home/exampleapp",
+        "HTTP_ACCEPT_ENCODING": "gzip, deflate, br",
+        "HTTP_REFERER": "https://endpointid.altexampleapp.com/",
+        "HTTP_USER_AGENT": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1",
+        "HTTP_SEC_FETCH_MODE": "no-cors",
+        "HTTP_ACCEPT_LANGUAGE": "en-US,en;q=0.9",
+        "HTTP_SEC_FETCH_DEST": "script",
+        "HTTP_SEC_FETCH_SITE": "cross-site",
+        "HTTP_ACCEPT": "*/*",
+        "HTTP_X_AMZN_TRACE_ID": "Root=1-65ed05b3-0513bc4dfa64b5fd2db178b7",
+        "HTTP_HOST": "prod.exampleapp.com",
+        "HTTP_X_FORWARDED_PORT": "443",
+        "HTTP_X_FORWARDED_PROTO": "https",
+        "HTTP_X_FORWARDED_FOR": "174.231.133.8",
+        "SCRIPT_FILENAME": "/var/www/prod.exampleapp.com/webroot/app/index.php",
+        "GEOIP_CONTINENT_CODE": "NA",
+        "GEOIP_POSTAL_CODE": "98422",
+        "GEOIP_CITY": "Tacoma",
+        "GEOIP_REGION": "WA",
+        "GEOIP_COUNTRY_CODE": "US",
+        "REDIRECT_STATUS": "200",
+        "SERVER_NAME": "prod.exampleapp.com",
+        "SERVER_PORT": "443",
+        "SERVER_ADDR": "10.3.4.206",
+        "REMOTE_PORT": "57160",
+        "REMOTE_ADDR": "10.3.1.165",
+        "SERVER_SOFTWARE": "nginx/1.20.2",
+        "GATEWAY_INTERFACE": "CGI/1.1",
+        "HTTPS": "on",
+        "REQUEST_SCHEME": "https",
+        "SERVER_PROTOCOL": "HTTP/1.1",
+        "DOCUMENT_ROOT": "/var/www/prod.exampleapp.com/webroot",
+        "DOCUMENT_URI": "/app/index.php",
+        "REQUEST_URI": "/app/SaveUuid.js?par1=SOME-VALID-UUID4-PAR1&par2=SOME-VALID-UUID4-PAR2&methods=32&par3=SOME-VALID-UUID4-PAR3&par4=B91661E02CE7414190A115A1366DBEF9",
+        "SCRIPT_NAME": "/app/index.php",
+        "CONTENT_LENGTH": "",
+        "CONTENT_TYPE": "",
+        "REQUEST_METHOD": "GET",
+        "QUERY_STRING": "par1=SOME-VALID-UUID4-PAR1&par2=SOME-VALID-UUID4-PAR2&methods=32&par3=SOME-VALID-UUID4-PAR3&par4=B91661E02CE7414190A115A1366DBEF9",
+        "FCGI_ROLE": "RESPONDER",
+        "PHP_SELF": "/app/index.php",
+        "REQUEST_TIME_FLOAT": "1710032307.1691",
+        "REQUEST_TIME": "1710032307"
+      },
+      "Form": [],
+      "RawData": null
+    },
+    "Environment": {
+      "UtcOffset": 0
+    },
+    "Client": {
+      "Name": "Raygun4php",
+      "Version": "2.1.1",
+      "ClientUrl": "https://github.com/MindscapeHQ/raygun4php"
+    },
+    "Version": "app",
+    "Tags": null,
+    "UserCustomData": {
+      "par3": "SOME-VALID-UUID4-PAR3",
+      "requestUrl": "/app/SaveUuid.js"
+    },
+    "User": {
+      "Identifier": "89ff3821-user-iden-tifi-errrrrrrrrrr",
+      "FirstName": null,
+      "FullName": null,
+      "Email": null,
+      "IsAnonymous": true,
+      "par4": null
+    },
+    "Context": {
+      "Identifier": "",
+      "FirstName": null,
+      "FullName": null,
+      "Email": null,
+      "IsAnonymous": null,
+      "par4": null
+    },
+    "GroupingKey": null,
+    "OccurredOn": "2024-03-10T00:58:27Z"
+  }
