@@ -78,11 +78,6 @@ The catalog layer is responsible for storing business and technical metadata abo
 
 Components in the processing layer are responsible for transforming data into a consumable state through data validation, cleanup, normalization, transformation, and enrichment. The processing layer provides purpose-built components to perform a variety of transformations, including data warehouse style SQL, big data processing, and near-real-time ETL.
 
-The processing layer provides the quickest time to market by providing purpose-built components that match the right dataset characteristics (size, format, schema, speed), processing task at hand, and available skillsets (SQL, Spark). The processing layer can cost-effectively scale to handle large data volumes and provide components to support schema-on-write, schema-on-read, partitioned datasets, and diverse data formats. The processing layer can access the unified Lake House storage interfaces and common catalog, thereby accessing all the data and metadata in the Lake House. This has the following benefits:
-
-Avoids data redundancies, unnecessary data movement, and duplication of ETL code that may result when dealing with a data lake and data warehouse separately
-Reduces time to market.
-
 ### Data consumption layer
 
 The data consumption layer is responsible for providing scalable and performant components that use unified Lake House interfaces to access all the data stored in Lake House storage and all the metadata stored in the Lake House catalog. It democratizes analytics to enable all personas across an organization by providing purpose-built components that enable analysis methods, including interactive SQL queries, warehouse style analytics, BI dashboards, and ML.
@@ -108,8 +103,6 @@ Sources:
 -->
 ![Common DatalakeHouse technologies](./images/Data_lakehouse_local_components.CR.svg)
 
-Components used on each Layer:
-
 * **Minio**<BR/>
   Data sources, storage layer, landing buckets.<BR/>
   [https://min.io](https://min.io)
@@ -132,12 +125,6 @@ Components used on each Layer:
   Query engine and data governance.<BR/>
   [https://trino.io](https://trino.io)
 
-* **Delta Lake**<BR/>
-  Open table format.<BR/>
-  [https://delta.io](https://delta.io)<BR/>
-  Open source framework developed by Databricks. Like other modern table formats, it employs file-level listings, improving the speed of queries considerably compared to the  directory-level listing of Hive. Offers enhanced CRUD operations, including the ability to update and delete records in a data lake which would previously have been immutable.<BR/>
-  (Click [here](https://www.starburst.io/data-glossary/open-table-formats/) for more information about Open Table Formats).<BR/>
-
 ## Other Components
 
 * **SQL Alchemy**<BR/>
@@ -148,6 +135,12 @@ Components used on each Layer:
 
 * **Jupiter Lab**<BR/>
   [https://docs.jupyter.org](https://docs.jupyter.org)
+
+* **Delta Lake**<BR/>
+  Open table format.<BR/>
+  [https://delta.io](https://delta.io)<BR/>
+  Open source framework developed by Databricks. Like other modern table formats, it employs file-level listings, improving the speed of queries considerably compared to the  directory-level listing of Hive. Offers enhanced CRUD operations, including the ability to update and delete records in a data lake which would previously have been immutable.<BR/>
+  (Click [here](https://www.starburst.io/data-glossary/open-table-formats/) for more information about Open Table Formats).<BR/>
 
 ## Requirements
 
