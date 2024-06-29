@@ -38,7 +38,9 @@ Automatic resume using MODE=resume.
 
 ### Changes
 /home/PyCon2024 directory renamed to /home/LocalLakeHouse.
+raygun_ip_processing.py renamed to main.py, for future AWS EMR implementation.
 Include the data lakehouse layers description in README.
+Calculate the exact starting file in list_files_minio().
 
 
 ## 0.0.5 (2024-06-26)

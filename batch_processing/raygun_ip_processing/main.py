@@ -324,6 +324,8 @@ def list_files_minio(config: dict, resume_from: int) -> list:
     List files in a Minio bucket under a specific prefix using boto3.
     """
 
+    own_resume_from = resume_from
+
     # Iver: To filter the files fro a specific Key
     # kwargs = {‘Bucket’: bucket,
     #           ‘Prefix’: prefix,
@@ -358,21 +360,40 @@ def list_files_minio(config: dict, resume_from: int) -> list:
 
     print("Starting files append...")
     files = []
-    j = 0
+    j = -1
     for page in page_iterator:
         j += 1
         print(f"{j}) Current files: {len(files)}" +
               f" | Files to append: {len(page.get('Contents', []))}")
-        if resume_from > 0:
-            if (j*config["s3_page_size"]) < resume_from:
-                print(f"Skipping from {j*config['s3_page_size']}" +
-                      f" until {resume_from}...")
+        first_file = 1
+        if own_resume_from > 0:
+            if own_resume_from > ((j+1)*config["s3_page_size"]):
+                print(f"{j}) Skipping from {(j*config['s3_page_size'])+1}" +
+                      f"-{(j+1)*config['s3_page_size']}" +
+                      f" until {own_resume_from}...")
                 continue
+            else:
+                first_file = own_resume_from - \
+                    ((j)*config["s3_page_size"])
+                print(f"Starting from {first_file} | " +
+                      f"originally: {own_resume_from} | " +
+                      f"initial sequence: {(j)*config['s3_page_size']} ...")
+                own_resume_from = -1
+        curr_file = 1
         for obj in page.get('Contents', []):
+            if curr_file < first_file:
+                # print(f"Skipping {curr_file} | {obj['Key']}")
+                curr_file += 1
+                continue
+            # print(f"Appending {curr_file} | {obj['Key']}")
             files.append(obj['Key'])
+            first_file += 1
+            curr_file += 1
         if config["testing_iteractions"] and \
            j >= config["testing_iteractions"]:
             break
+
+    print(f"Final total files to process: {len(files)}")
     return files
 
 
@@ -449,11 +470,13 @@ def ingest():
     resume_from = config["resume_from"]
     if config["mode"] == "resume":
         resume_from = hive_verification(spark)
+        # Start from the next file after the total files already processed
+        resume_from += 1
     if not resume_from:
         # Process from scratch
         resume_from = -1
     else:
-        # Resume from file number
+        # Resume from the specified file number
         resume_from = int(resume_from)
 
     ########################
@@ -1071,6 +1094,7 @@ def get_spark_content():
         print(f"Error: {e}")
         print("No cached DataFrame found [3]...")
 
+    # Hive metastore databases
     db_list = spark.catalog.listDatabases()
     print(f"Databases: {db_list}")
 

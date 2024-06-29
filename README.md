@@ -47,8 +47,12 @@ Readings:
 
 ## Data Lakehouse Layers
 
+<!--
 ![DatalakeHouse components](./images/Data_Lakehouse_framework_and_process_flow.jpg)<BR/>
 ([Image source](https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics))
+-->
+![DatalakeHouse components](./images/Data_Lakehouse_framework_and_process_flow_AWS.jpg)<BR/>
+([Image source](https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/))
 
 Storing structured and unstructured data in a data lakehouse presents many benefits to a data organization, namely making it easier and more seamless to support both business intelligence and data science workloads. This starts at the data source.
 
@@ -86,8 +90,14 @@ The data consumption layer is responsible for providing scalable and performant 
 Sources:
 * [https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/](https://aws.amazon.com/es/blogs/big-data/build-a-lake-house-architecture-on-aws/)
 * [https://www.montecarlodata.com/blog-data-lakehouse-architecture-5-layers/](https://www.montecarlodata.com/blog-data-lakehouse-architecture-5-layers/)
+* [https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics](https://www.visionet.com/blog/data-lakehouse-the-future-of-modern-data-warehousing-analytics)
 
-## Data Lakehouse Components
+## Data LakeHouse Components by Cloud Providers
+
+![DatalakeHouse Components by Cloud](./images/7316_cloud-data-lakehouse-success-story.002.png)<BR/>
+([Image source](https://www.mssqltips.com/sqlservertip/7316/cloud-data-lakehouse-success-story-architecture-outcomes-lessons-learned/))
+
+## Local Data Lakehouse Components
 
 <!--
 ![DatalakeHouse components](./images/1_xuE8_N_LxoP49S1Pu5Wn5A.webp)<BR/>
@@ -137,14 +147,6 @@ Components used on each Layer:
 
 * **Jupiter Lab**<BR/>
   [https://docs.jupyter.org](https://docs.jupyter.org)
-
-## DatalakeHouse Components by Cloud
-
-
-![DatalakeHouse Components by Cloud](./images/7316_cloud-data-lakehouse-success-story.002.png)<BR/>
-([Image source](https://www.mssqltips.com/sqlservertip/7316/cloud-data-lakehouse-success-story-architecture-outcomes-lessons-learned/))
-
-
 
 ## Requirements
 
