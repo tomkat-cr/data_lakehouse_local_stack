@@ -102,14 +102,15 @@ Sources:
 <!--
 ![DatalakeHouse components](./images/1_xuE8_N_LxoP49S1Pu5Wn5A.webp)<BR/>
 ([Image source](https://medium.com/adfolks/data-lakehouse-paradigm-of-decade-caa286f5b7a1))
--->
 
 ![Common DatalakeHouse technologies](./images/Data_Lake_vs_Data_Warehouse.webp)<BR/>
 ([Image source](https://www.montecarlodata.com/blog-data-lake-vs-data-warehouse))
+-->
+![Common DatalakeHouse technologies](./images/Data_lakehouse_local_components.CR.svg)
 
 Components used on each Layer:
 
-* **Minio / S3**<BR/>
+* **Minio**<BR/>
   Data sources, storage layer, landing buckets.<BR/>
   [https://min.io](https://min.io)
 
