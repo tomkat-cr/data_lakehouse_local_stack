@@ -17,6 +17,18 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ### Breaks
 
 
+## 0.0.7 (2024-06-29)
+---
+
+### New
+Add DatalakeHouse Components by Cloud image to README.
+Add S3_PROTOCOL environment variable to configure s3 / s3a.
+
+### Changes
+get_datetime() used to add timestamps on each ingestion bath process.
+close_spark_session() added to each process that start a spark session builder.
+
+
 ## 0.0.6 (2024-06-28)
 ---
 

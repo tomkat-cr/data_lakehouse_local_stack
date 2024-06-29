@@ -104,27 +104,28 @@ Components used on each Layer:
   [https://min.io](https://min.io)
 
 * **Apache Spark**<BR/>
-  Processing layer.<BR/>
+  Processing layer, compute.<BR/>
   [https://spark.apache.org](https://spark.apache.org)<BR/>
   [https://spark.apache.org/docs/latest/api/python/index.html](https://spark.apache.org/docs/latest/api/python/index.html)<BR/>
+[https://sparkbyexamples.com/pyspark-tutorial/](https://sparkbyexamples.com/pyspark-tutorial/)<BR/>
 
 * **Apache Hive**<BR/>
-  Data catalog on catalog layer.<BR/>
+  Data catalog, catalog layer, metadata.<BR/>
   [https://hive.apache.org](https://hive.apache.org)
 
 * **Postgres Database**<BR/>
   Data catalog persistence.<BR/>
   [https://www.postgresql.org](https://www.postgresql.org)
 
+* **Trino**<BR/>
+  Query engine and data governance.<BR/>
+  [https://trino.io](https://trino.io)
+
 * **Delta Lake**<BR/>
   Open table format.<BR/>
   [https://delta.io](https://delta.io)<BR/>
   Open source framework developed by Databricks. Like other modern table formats, it employs file-level listings, improving the speed of queries considerably compared to the  directory-level listing of Hive. Offers enhanced CRUD operations, including the ability to update and delete records in a data lake which would previously have been immutable.<BR/>
   (Click [here](https://www.starburst.io/data-glossary/open-table-formats/) for more information about Open Table Formats).<BR/>
-
-* **Trino**<BR/>
-  Query engine and data governance.<BR/>
-  [https://trino.io](https://trino.io)
 
 ## Other Components
 
@@ -136,6 +137,14 @@ Components used on each Layer:
 
 * **Jupiter Lab**<BR/>
   [https://docs.jupyter.org](https://docs.jupyter.org)
+
+## DatalakeHouse Components by Cloud
+
+
+![DatalakeHouse Components by Cloud](./images/7316_cloud-data-lakehouse-success-story.002.png)<BR/>
+([Image source](https://www.mssqltips.com/sqlservertip/7316/cloud-data-lakehouse-success-story-architecture-outcomes-lessons-learned/))
+
+
 
 ## Requirements
 

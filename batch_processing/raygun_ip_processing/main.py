@@ -41,7 +41,6 @@ from trino.dbapi import connect
 # Libraries for date/time function
 from datetime import datetime, timedelta, timezone
 
-
 DEFAULT_SQL = "SELECT " + \
     "RequestIpAddress, COUNT(*) AS IpCount" + \
     " FROM raygun_error_traces" + \
@@ -72,7 +71,8 @@ def get_config(show_params: bool = True) -> dict:
 
     # Root directory path
     config["base_path"] = os.getenv('BASE_PATH')
-    # config["base_path"] = os.getenv('BASE_PATH', "/home/LocalLakeHouse/Project")
+    # config["base_path"] = \
+    #   os.getenv('BASE_PATH', "/home/LocalLakeHouse/Project")
 
     if not config["base_path"]:
         print("Error: BASE_PATH environment variable is not set.")
@@ -86,6 +86,9 @@ def get_config(show_params: bool = True) -> dict:
         config["testing_iteractions"] = int(config["testing_iteractions"])
     else:
         config["testing_iteractions"] = None
+
+    # S3 protocol (s3 / s3a)
+    config["s3_protocol"] = os.getenv('S3_PROTOCOL', 's3a')
 
     # S3 pagination page size: 1000 files chunks
     config["s3_page_size"] = int(os.getenv('S3_PAGE_SIZE', '1000'))
@@ -154,7 +157,8 @@ def get_config(show_params: bool = True) -> dict:
     config["df_cluster_storage_bucket_prefix"] = os.getenv(
         'df_cluster_storage_bucket_prefix', "ClusterData/RaygunIpSummary")
 
-    config["df_output_s3_path"] = f"s3a://{config['minio_bucket_name']}/" + \
+    config["df_output_s3_path"] = f"{config['s3_protocol']}://" + \
+        f"{config['minio_bucket_name']}/" + \
         config['df_cluster_storage_bucket_prefix']
 
     # Dataframe output format
@@ -215,6 +219,19 @@ def get_config(show_params: bool = True) -> dict:
             print("Ingest from:", config["resume_from"])
 
     return config
+
+
+def get_datetime():
+    """
+    Get the current date and time in Eastern time zone and format it as
+    YYYY-MM-DD HH:MM:SS.
+    """
+    # Get the current date and time in Eastern time zone
+    eastern_tz = timezone(timedelta(hours=-5), name='EST')
+    current_datetime = datetime.now(eastern_tz)
+    # Format the date and time as YYYY-MM-DD HH:MM:SS
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    return formatted_datetime
 
 
 def show_curr_datetime(timestamp: float = None, message: str = None) -> float:
@@ -293,6 +310,13 @@ def get_spark_session(config: dict) -> SparkSession.Builder:
     # conf.setMaster("local[*]")
 
     return spark
+
+
+def close_spark_session(spark):
+    """
+    Close a Spark session.
+    """
+    spark.stop()
 
 
 def list_files_minio(config: dict, resume_from: int) -> list:
@@ -444,7 +468,8 @@ def ingest():
     bucket_name = config["minio_bucket_name"]
 
     # Path to the JSON files in MinIO
-    json_files_path = f"s3a://{bucket_name}/{config['s3_prefix']}/"
+    json_files_path = f"{config['s3_protocol']}://{bucket_name}/" + \
+        f"{config['s3_prefix']}/"
 
     # Minio endpoint (only domian and port)
     minio_endpoint_domain_port = config["minio_endpoint"] \
@@ -545,14 +570,15 @@ def ingest():
     print(">> READING FILES INTO DATAFRAME")
     print("")
 
+    # Read JSON files into DataFrame selecting all attributes
     # df = spark.read.option("multiline", "true").json(json_files_path)
 
     # Read JSON files into DataFrame and select only the desired attribute
-
     # df = spark.read.option("multiline", "true") \
     #     .json(json_files_path) \
     #     .select(config["desired_attribute"])
 
+    # Read JSON files into DataFrame by batches (better for large file sets)
     # Optimize the spark.read.option().json() file processing
     # by first getting a list of all file paths in the directory,
     # then use spark.read.json() to read all files IN CHUCKS
@@ -565,7 +591,8 @@ def ingest():
     file_list = list_files_minio(config, resume_from)
 
     # Convert to the format read by Spark
-    file_list = [f"s3a://{bucket_name}/{file_name}" for file_name in file_list]
+    file_list = [f"{config['s3_protocol']}://{bucket_name}/{file_name}"
+                 for file_name in file_list]
     show_curr_datetime(init_ts)
 
     print(f"Number of files: {len(file_list)}")
@@ -604,7 +631,8 @@ def ingest():
     j = 0
     for i in range(0, len(file_list), config["df_read_batch_size"]):
         j += 1
-        print(f"{j}) From: {i} | To: {i+config['df_read_batch_size']}")
+        print(f"{get_datetime()} - {j}) From: {i} | " +
+              f"To: {i+config['df_read_batch_size']}")
         batch_files = file_list[i:i+config["df_read_batch_size"]]
         if config["desired_attribute"]:
             df = spark.read.option("multiline", "true") \
@@ -619,7 +647,8 @@ def ingest():
 
         # Write the chunck to the spark cluster disk (when cluster dies,
         # disk will be erased unless it's written on S3)
-        print(f"Persisting DataFrame to disk (round {j})...")
+        print(f"{get_datetime()} - Persisting DataFrame to disk" +
+              f" (round {j})...")
         df \
             .write \
             .mode("append") \
@@ -627,23 +656,6 @@ def ingest():
             .option("compression", config["df_compression_format"]) \
             .save(config["df_output_s3_path"],
                   header=config["df_input_header"])
-
-        # After reading all the JSON files in batches, we need to union all the
-        # batches to get the complete DataFrame with all the data
-        # df_final = df.unionAll(df_final)
-
-        # Persist the DataFrame to disk
-
-        # Cache the DataFrame in memory
-        # df.cache()
-
-        # df.persist(StorageLevel.DISK_ONLY)
-        # spark.catalog.cacheTable("cached_df", df)
-        # TypeError: storageLevel must be of type pyspark.StorageLevel
-
-        # df.persist(StorageLevel.MEMORY_AND_DISK)
-        # spark.catalog.cacheTable("cached_df", df)
-        # TypeError: storageLevel must be of type pyspark.StorageLevel
 
         # Call specific function to process data
         # process_data(df)
@@ -660,7 +672,9 @@ def ingest():
     show_curr_datetime(init_ts)
 
     # Finish the process by creating the Hive metastore
-    hive_process(df, start_time)
+    hive_process(spark, df, start_time)
+
+    close_spark_session(spark)
 
     return True
 
@@ -681,26 +695,35 @@ def hive_verification(spark: SparkSession.Builder = None):
 
     # Initialize Spark session
     if not spark:
+        close_spark = True
         spark = get_spark_session(config)
         if not spark:
             return False
+    else:
+        close_spark = False
 
-    print("Calculating processed rows...")
+    print("")
+    print(f"{get_datetime()} - Calculating processed rows...")
     df = spark.read.load(config["df_output_s3_path"])
     if config["desired_alias"]:
         rows_count = df.select(config["desired_alias"]).count()
     else:
         rows_count = df.select("*").count()
     print("")
-    print("Processed rows until now:")
+    print(f"{get_datetime()} - Processed rows until now:")
     print(rows_count)
     print("")
 
     show_curr_datetime(start_time)
+
+    if close_spark:
+        close_spark_session(spark)
+
     return rows_count
 
 
-def hive_process(df: DataFrame = None, start_time: float = None):
+def hive_process(spark: SparkSession.Builder = None, df: DataFrame = None,
+                 start_time: float = None):
 
     # Load environment variables
     config = get_config(df is None)
@@ -724,9 +747,14 @@ def hive_process(df: DataFrame = None, start_time: float = None):
     print(">> Initializing Spark session...")
     print("")
 
-    spark = get_spark_session(config)
+    # Initialize Spark session
     if not spark:
-        return False
+        close_spark = True
+        spark = get_spark_session(config)
+        if not spark:
+            return False
+    else:
+        close_spark = False
 
     # # Load a table as a DataFrame
     # default_db = spark.catalog.listDatabases()[0]
@@ -908,6 +936,9 @@ def hive_process(df: DataFrame = None, start_time: float = None):
     print("****************************")
     show_curr_datetime(start_time)
 
+    if close_spark:
+        close_spark_session(spark)
+
     return True
 
 
@@ -952,6 +983,8 @@ def get_spark_query(sql: str = None):
 
     print("")
     print("Done!")
+
+    close_spark_session(spark)
 
 
 def get_trino_query(sql: str = None):
@@ -1013,12 +1046,8 @@ def get_spark_content():
     current_database = spark.catalog.currentDatabase()
     print(f"Current database: {current_database}")
 
-    # Get the dataframe for the current database
-    df = spark.sql("SELECT * FROM cached_df")
-    print("Dataframe schema structure:")
-
     try:
-        # Check if any previous data exists
+        # Check if any previous cached data exists
         if spark.catalog.isCached("cached_df"):
             # Retrieve the cached DataFrame
             print("Loading cached DataFrame...")
@@ -1027,8 +1056,10 @@ def get_spark_content():
             # the JSON files
             print("")
             print("Dataframe schema structure:")
-            # Show schema structure
             df.printSchema()
+            # Show content (only a few)
+            # df = spark.sql("SELECT * FROM cached_df LIMIT 10")
+            df.show()
         else:
             print("No cached DataFrame found [1]...")
             # Initialize an empty DataFrame
@@ -1057,6 +1088,8 @@ def get_spark_content():
     print(f"Tables in {default_db.name}:")
     for table in tables:
         print(f"- {table.name}")
+
+    close_spark_session(spark)
 
 
 if __name__ == "__main__":
