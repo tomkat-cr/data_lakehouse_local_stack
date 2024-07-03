@@ -186,13 +186,13 @@ make open_local_minio
 
 ## Raygun Data Processing
 
-To process a single Raygun error you need to download the Raygun data, composed by a series of JSON files for each time  the error happend with all data shown in Raygun, upload the data to S3 (managed locally by Minio), ingest the data using Spark, build the Hive metastore and finally run the SQL queries to get the data analytics.
+To process a single Raygun error you need to download the Raygun data, composed by a series of JSON files for each time the error happens with all data shown in Raygun, upload the data to S3 (managed locally by Minio), ingest the data using Spark, build the Hive metastore and finally run the SQL queries to get the data analytics.
 
 ### Raygun Data Preparation
 
 1. Go to Raygun ([https://app.raygun.com](https://app.raygun.com)), and select the corresponding Application.
 
-2. Put the check mark in the error you want to analyze.
+2. Put the checkmark in the error you want to analyze.
 
 3. Click on the `Export selected groups` button.
 
@@ -239,13 +239,13 @@ Learn how to extract 7z files
 
 11. Click on the `Download export - XXX MB` link.
 
-12. Put the compressed file in a local directory like: `${HOME}/Downloads/raygun-data`
+12. Put the compressed file in a local directory like `${HOME}/Downloads/raygun-data`
 
 13. Uncompress the file.
 
-14. A new directory will be created with the JSON files, each one with a error for a date/time, in the directory: `${HOME}/Downloads/raygun-data/assets`
+14. A new directory will be created with the JSON files, each one with an error for a date/time, in the directory: `${HOME}/Downloads/raygun-data/assets`
 
-15. To check the input files size:
+15. To check the total input file size:
 
 Set an environment variable with the path:
 
@@ -265,7 +265,7 @@ Count the number of files in that directory:
 ls -l ${ORIGINAL_JSON_FILES_PATH} | wc -l
 ```
 
-16. Move the files to the `data/raygun` directory in the Project, or perform the `Large number of input data files` procedure (se next section) to link the `${HOME}/Downloads/raygun-data/assets` to the `data/raygun` directory.
+16. Move the files to the `data/raygun` directory in the Project, or perform the `Large number of input data files` procedure (see next section) to link the `${HOME}/Downloads/raygun-data/assets` to the `data/raygun` directory.
 
 ### Large number of input data files
 
@@ -301,7 +301,7 @@ ln -s /path/to/input/directory/ data/any_directory_name
 
 4. Once you finish the ingestion process (see `Raygun Data Ingestion` section), the link can be removed:
 
-Exit the `spark` docker container pressing Ctrl-D (or running the `exit` command), and run:
+Exit the `spark` docker container by pressing Ctrl-D (or running the `exit` command), and run:
 
 ```sh
 unlink data/any_directory_name
@@ -309,7 +309,7 @@ unlink data/any_directory_name
 
 ### Configuration
 
-1. Change current directory to the Raygun processing path:
+1. Change the current directory to the Raygun processing path:
 
 ```sh
 cd /home/LocalLakeHouse/Project/batch_processing/raygun_ip_processing
@@ -370,21 +370,21 @@ DESIRED_ALIAS=RequestIpAddress
 RESULTS_SUB_DIRECTORY=raygun_ip_addresses_summary
 ```
 
-10. Assign the input files reading page size, to prevent errors building a large number of files.
+10. Assign the input files reading page size, to prevent errors building the list of large amounts of files.
 
 ```env
 # S3 pagination page size: 1000 files chunks
 S3_PAGE_SIZE-1000
 ```
 
-11. Define the batch size, to read the JSON files in batches during the Spark Dataframe creation. Adjust the batch size based on your memory capacity and data size. 5000 works well in a MacBook with 16 GB of RAM memory.
+11. Define the batch size, to read the JSON files in batches during the Spark Dataframe creation. Adjust the batch size based on your memory capacity and data size. 5000 works well in a MacBook with 16 GB of RAM.
 
 ```env
 # Spark Dataframe creation batch size: 5000 files per batch.
 DF_READ_BATCH_SIZE=5000
 ```
 
-12. Assign the Spark driver memory. The Raygun JSON files form example has 16 Kb each, so they are small files.
+12. Assign the Spark driver memory. For example, the Raygun JSON event files have 16 Kb each (small files).
 
 ```env
 # Spark driver memory
@@ -402,14 +402,14 @@ SPARK_DRIVER_MEMORY=3g
 DF_NUM_PARTITIONS=200
 ```
 
-14. Assign the number of batches to save Data into the Apache Hive metastore, to prevent errors saving large amout of files.
+14. Assign the number of batches to save Data into the Apache Hive metastore, to prevent errors saving large amounts of files.
 
 ```env
 # Number of batches to Save Data into Apache Hive
 HIVE_BATCHES=10
 ```
 
-15. For other parameters, check the [Raygun IP processing main python code](batch_processing/raygun_ip_processing/main.py), function `get_config()`.
+15. For other parameters check the [Raygun IP processing main Python code](batch_processing/raygun_ip_processing/main.py), function `get_config()`.
 
 
 ### Raygun Data Copy to S3 / Minio
@@ -449,7 +449,7 @@ Open a terminal window and enter to the `spark` docker container:
 docker exec -ti spark bash
 ```
 
-Run the injestion process from scratch:
+Run the ingestion process from scratch:
 
 ```sh
 cd Project
@@ -476,7 +476,7 @@ MODE=ingest FROM=XXXX make raygun_ip_processing
 
 ### Build the Hive Metastore
 
-If the igestion process stops and you don't want to resume/finish it, you can run the Hive metastore building, and be able to run the SQL queries and build the reports:
+If the ingestion process stops and you don't want to resume/finish it, you can run the Hive metastore building, and be able to run the SQL queries and build the reports:
 
 ```sh
 MODE=hive_process make raygun_ip_processing
@@ -501,7 +501,7 @@ SELECT RequestIpAddress, COUNT(*) AS IpCount
   ORDER BY IpCount DESC
 ```
 
-The result will be the list of IP addresses and number of times those IPs are in all the Requests evaluated.
+The result will be the list of IP addresses and the number of times those IPs are in all the Requests evaluated.
 
 2. To run a custom SQL query using Spark:
 
@@ -519,7 +519,7 @@ MODE=trino_sql make raygun_ip_processing
 
 1. To check the Dataframe cluster S3 (Minio) files:
 
-This way you can do the ingestion process follow-up, because during the dataframe build step in in the ingest process, files are processed in batchs (groups of 5,000 files) and each time a batch finises, the result is written to the S3 cluster directory. If the ingestion process stops, it can be resumed from the ending point of last executed batch, and the processed files will be appended to the S3 cluster directory.
+This way you can do the ingestion process follow-up because during the Dataframe build step in the ingest process, files are processed in batches (groups of 5,000 files), and each time a batch finishes, the result is written to the S3 cluster directory. If the ingestion process stops, it can be resumed from the last executed batch, and the processed files will be appended to the S3 cluster directory.
 
 Set an environment variable with the path:
 
@@ -527,7 +527,7 @@ Set an environment variable with the path:
 CLUSTER_DIRECTORY="/home/LocalLakeHouse/Project/Storage/minio/data-lakehouse/ClusterData/RaygunIpSummary"
 ```
 
-The parquet files resulting from the dataframe build part in the ingestion process. are in the path assigned to `CLUSTER_DIRECTORY`.
+The parquet files resulting from the Dataframe build part in the ingestion process. are in the path assigned to `CLUSTER_DIRECTORY`.
 
 Get the total size for all files currently processed in the Dataframe:
 
@@ -591,7 +591,7 @@ It runs the following command:
 docker exec -ti spark pyspark
 ```
 
-2. Go this URL in a Browser: [http://127.0.0.1:4040](http://127.0.0.1:4040)
+2. Go to this URL in a Browser: [http://127.0.0.1:4040](http://127.0.0.1:4040)
 
 ## Run the local Jupiter Notebooks
 
