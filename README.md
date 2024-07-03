@@ -4,7 +4,7 @@
 
 This repository aims to introduce the Data Lakehouse pattern as a suitable and flexible solution to transit small companies to established enterprises, allowing to implement a local data lakehouse from OpenSource solutions, compatible with Cloud production grade tools.
 
-It also includes an example to process Raygun error data and the IP address occurrence.
+It also includes an [example to process Raygun error data and the IP address occurrence](#raygun-data-processing).
 
 ## Introduction
 
@@ -307,9 +307,114 @@ Exit the `spark` docker container pressing Ctrl-D (or running the `exit` command
 unlink data/any_directory_name
 ```
 
+### Configuration
+
+1. Change current directory to the Raygun processing path:
+
+```sh
+cd /home/LocalLakeHouse/Project/batch_processing/raygun_ip_processing
+```
+
+2. Copy the configuration template:
+
+```sh
+cp processing.example.env processing.env
+```
+
+3. Edit the configuration file:
+
+```sh
+vi processing.example.env processing.env
+```
+
+4. Assign the Spark App Name:
+
+```env
+SPARK_APPNAME=RaygunErrorTraceAnalysis
+```
+
+5. Assign the data input sub-directory (under `BASE_PATH` or `/home/LocalLakeHouse/Project`):
+
+```env
+# Local directory path containing JSON files
+INPUT_LOCAL_DIRECTORY="data/raygun"
+```
+
+6. Assign the Local S3 (Minio) raw data input sub-directory:
+
+```env
+# S3 prefix (directory path in the bucket) to store raw data read from
+# the local directory
+S3_PREFIX="Raw/raygun"
+```
+
+7. Assign the Cluster storage bucket name, to save the processed Dataframes and be able to resume the execution from the last one when any error aborts the process:
+
+```env
+# Dataframe cluster storage bucket name
+DF_CLUSTER_STORAGE_BUCKET_PREFIX="ClusterData/RaygunIpSummary"
+```
+
+8. Assign the attribute name and alias for the IP Address in the Raygun JSON files:
+
+```env
+# Desired attribute and alias to filter one column
+DESIRED_ATTRIBUTE="Request.IpAddress"
+DESIRED_ALIAS=RequestIpAddress
+```
+
+9. Assign the results sub-directory (under `/home/LocalLakeHouse/Project/Outputs`)
+
+```env
+# Final output result sub-directory
+RESULTS_SUB_DIRECTORY=raygun_ip_addresses_summary
+```
+
+10. Assign the input files reading page size, to prevent errors building a large number of files.
+
+```env
+# S3 pagination page size: 1000 files chunks
+S3_PAGE_SIZE-1000
+```
+
+11. Define the batch size, to read the JSON files in batches during the Spark Dataframe creation. Adjust the batch size based on your memory capacity and data size. 5000 works well in a MacBook with 16 GB of RAM memory.
+
+```env
+# Spark Dataframe creation batch size: 5000 files per batch.
+DF_READ_BATCH_SIZE=5000
+```
+
+12. Assign the Spark driver memory. The Raygun JSON files form example has 16 Kb each, so they are small files.
+
+```env
+# Spark driver memory
+# "3g" for small files it's better 2-3g
+# "12g" for big files with more data it's better 4-5g
+SPARK_DRIVER_MEMORY=3g
+```
+
+13. Assign the Spark number of partitions, to optimize parallel processing and memory usage:
+
+```env
+# Repartition the DataFrame to optimize parallel processing and memory usage
+# (Adjust the number of partitions based on your environment and data size,
+#  workload and cluster setup)
+DF_NUM_PARTITIONS=200
+```
+
+14. Assign the number of batches to save Data into the Apache Hive metastore, to prevent errors saving large amout of files.
+
+```env
+# Number of batches to Save Data into Apache Hive
+HIVE_BATCHES=10
+```
+
+15. For other parameters, check the [Raygun IP processing main python code](batch_processing/raygun_ip_processing/main.py), function `get_config()`.
+
+
 ### Raygun Data Copy to S3 / Minio
 
-4. In a terminal window, restart the `spark stack`:
+1. In a terminal window, restart the `spark stack`:
 
 If the local stack is already running, press Ctrl-C to stop it.
 
@@ -321,13 +426,13 @@ make run
 
 The spark stak docker container will have a `/home/LocalLakeHouse/Project` directory that's the Project's root directory in your local computer.
 
-5. Open a second terminal window and enter to the `spark` docker container:
+2. Open a second terminal window and enter to the `spark` docker container:
 
 ```sh
 docker exec -ti spark bash
 ```
 
-6. Then run the load script:
+3. Then run the load script:
 
 ```sh
 cd /home/LocalLakeHouse/Project
@@ -501,10 +606,10 @@ make open_local_jupiter
 3. A screen will appear asking for the  `Password or token` to authenticate.<BR/>
    It can be found in the  `docker attach` screen (the one that stays running when you execute `make run` to start the `spark stack`).
 
-3. Seach for a message like this:<BR/>
+4. Seach for a message like this:<BR/>
     `http://127.0.0.1:8888/lab?token=xxxx`
 
-4. The `xxxx` is the `Password or token` to authenticate.
+5. The `xxxx` is the `Password or token` to authenticate.
 
 ## Connect to the Jupiter Server in VSC
 
@@ -515,13 +620,13 @@ To connect the Jupiter Server in VSC (Visual Studio Code):
 
 2. The `xxxx` is the password to be used when the Jupyter Kernel Connection ask for it...
 
-2. Then select the `Existing Jupiter Server` option.
+3. Then select the `Existing Jupiter Server` option.
 
-3. Specify the URL: `http://127.0.0.1:8888`
+4. Specify the URL: `http://127.0.0.1:8888`
 
-4. Specify the password copied in seconf step: `xxxx`
+5. Specify the password copied in seconf step: `xxxx`
 
-5. Select the desired Kernel from the list
+6. Select the desired Kernel from the list
 
 The VSC will be connected to the Jupiter Server.
 
