@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  raygun-analysis:
+    image: python:3.10
+    container_name: raygun_analysis
+    working_dir: /usr/src/app
+    volumes:
+      - .:/usr/src/app
+      - $HOME/Downloads/assets:/usr/src/app/assets
+    # command: sh ./scripts/run_app.sh run
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    # Stay alive
+    command: tail -f /dev/null
+    
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: raygun_db
+    ports:
+      - "5432:5432"
